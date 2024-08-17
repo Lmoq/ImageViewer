@@ -15,29 +15,47 @@ namespace fs = std::filesystem;
 class ImageViewer
 {
 public:
-    inline static BOOL displayWindow = TRUE;
-    inline static UINT8 R = 50, G = 50, B = 50, A = 255;
-
-    inline static sf::Color ClearColor = sf::Color( R,G,B,A );
     inline static std::unordered_set<std::string> valid_extensions = {
         ".jpg",
         ".png",
         ".jpeg"
     };
-    inline static UINT pageIndex = 0;
-    inline static fs::path image_folder;
-    inline static std::vector<std::string> filepaths;
 
-    inline static sf::RenderWindow window;
-    inline static sf::WindowHandle windowHandle;
+    // Media info
+    static int pageIndex;
+    static fs::path image_folder;
+    static std::vector<std::string> filepaths;
 
-    inline static sf::Image image;
-    inline static sf::Texture texture;
-    inline static sf::Sprite sprite;
+    // Window
+    static BOOL displayWindow;
+    static sf::Color ClearColor;
+
+    static sf::RenderWindow window;
+    static sf::WindowHandle windowHandle;
+
+    static sf::Image image;
+    static sf::Texture texture;
+    static sf::Sprite sprite;
+
+    static int screen_width;
+    static int screen_height;
+
+    static int sprite_width;
+    static int sprite_height;
 
     // Can be retrived using screen_height / texture_height
-    inline static float resize_scale = 0.392;
-    inline static float default_scale = resize_scale;
+    static float resize_scale;
+    static float initial_scale;
+
+    // Mouse drag
+    static BOOL lockedLeft;
+    static BOOL lockedRight;
+
+    static BOOL lockedTop;
+    static BOOL lockedBottom;
+
+    static BOOL draggableImage;
+    static POINT mouse_image_distance;
 
     static void open( const char *folder );
     static void setImage( const std::string &filename );
@@ -49,6 +67,7 @@ public:
     static void prevPage();
 
     static void zoomImage( sf::Event &event );
+    static void dragImage( sf::Event &event );
 };
 
 #endif

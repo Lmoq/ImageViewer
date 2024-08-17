@@ -53,9 +53,8 @@ class Hotkey
         if ( !hook )
         {
             std::cout << "Hook failed\n";
+            return;
         }
-        std::cout << "Hook installed\n";
-
         MSG msg;
         while ( GetMessage( &msg, NULL, 0,0 ) > 0 )
         {
@@ -63,7 +62,6 @@ class Hotkey
             DispatchMessage( &msg );
         }
         UnhookWindowsHookEx( hook );
-        std::cout << "Unhooked\n";
     }
 
     /// @brief Populate hotkey map. Remember to add terminate hotey
@@ -83,7 +81,6 @@ class Hotkey
         {
             return;
         }
-        std::cout << "Hashed : " << hash << '\n';
         map[ hash ] = hkey;
     }
 

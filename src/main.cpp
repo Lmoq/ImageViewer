@@ -34,6 +34,27 @@ int main()
                 case sf::Event::MouseWheelScrolled:
                     ImageViewer::zoomImage( event );
                     break;
+
+                case sf::Event::MouseButtonPressed:
+                    ImageViewer::draggableImage = TRUE;
+                    ImageViewer::mouse_image_distance = POINT
+                    {
+                        event.mouseButton.x - static_cast<long>( ImageViewer::sprite.getGlobalBounds().getPosition().x ), 
+                        event.mouseButton.y - static_cast<long>( ImageViewer::sprite.getGlobalBounds().getPosition().y )
+                    };
+                    break;
+                
+                case sf::Event::MouseMoved:
+                    if ( ImageViewer::draggableImage )
+                        ImageViewer::dragImage( event );
+                    break;
+
+                case sf::Event::MouseButtonReleased:
+                    ImageViewer::draggableImage = FALSE;
+                    break;
+
+                default:
+                    break;
             }
         }
 
