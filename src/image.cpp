@@ -24,12 +24,15 @@ sf::Sprite ImageViewer::sprite;
 int ImageViewer::sprite_width = 0;
 int ImageViewer::sprite_height = 0;
 
-float ImageViewer::initial_scale;
-float ImageViewer::resize_scale = initial_scale;
+// Mouse
+sf::View ImageViewer::view;
+sf::Vector2f ImageViewer::mousePos;
+
+float initial_scale_out;
+float scale_out;
 
 // Mouse
 BOOL ImageViewer::draggableImage = FALSE;
-POINT ImageViewer::mouse_image_distance;
 
 void ImageViewer::open( const char *folder )
 {
@@ -44,30 +47,27 @@ void ImageViewer::open( const char *folder )
     texture.loadFromFile( filepaths[0] );
 
     screen_height = sf::VideoMode::getDesktopMode().height;
-    initial_scale = static_cast<float>(screen_height) / static_cast<float>(texture.getSize().y);
-    resize_scale = initial_scale;
+    initial_scale_out = static_cast<float>(texture.getSize().y) / static_cast<float>(screen_height);
+    scale_out = initial_scale_out;
 
-    sprite_width = texture.getSize().x * resize_scale;
-    sprite_height = texture.getSize().y * resize_scale;
+    sprite_height = texture.getSize().y / scale_out;
+    sprite_width = texture.getSize().x / scale_out;
 
     screen_width = sprite_width;
     screen_height = sprite_height;
 
+    printf("scrw(%d) : srch(%d)\n", screen_width, screen_height);
+
     window.create( sf::VideoMode( screen_width, screen_height ), "ImageViewer", sf::Style::None );
     windowHandle = window.getSystemHandle();
 
+    view = window.getDefaultView();
+
     setImage( filepaths[ pageIndex ] );
 
-    // std::cout << "screen_width  : " << screen_width << '\n'
-    //           << "screen_x      : " << window.getPosition().x << '\n'
-    //           << "sprite width  : " << sprite_width << "\n\n"
-    //           << "scr_w - spr_w : " << (screen_width - sprite_width) << '\n'
-    //           << "scr_w-spr_w/2 : " << ((screen_width - ( sprite_width )) / 2) << '\n'
-    //           << "quo - scr_x   : " << (((screen_width - ( sprite_width )) / 2) - window.getPosition().x) << '\n'
-    //           << "sprite x      : " << sprite.getLocalBounds().left << '\n';
-
-    // SetWindowLong( windowHandle, GWL_EXSTYLE, GetWindowLong( windowHandle, GWL_EXSTYLE ) | WS_EX_LAYERED );
-    // SetLayeredWindowAttributes( windowHandle, RGB( R,G,B ), A, LWA_COLORKEY | LWA_ALPHA );
+    view.setCenter( texture.getSize().x / 2, texture.getSize().y / 2 );
+    view.zoom( scale_out );
+    window.setView( view );
 
     SetWindowPos( windowHandle, HWND_TOPMOST, 0,0,0,0, SWP_NOMOVE | SWP_NOSIZE );
     hideWindow();
@@ -79,10 +79,6 @@ void ImageViewer::setImage( const std::string &filepath )
     texture.setSmooth( true );
 
     sprite.setTexture( texture );
-    sprite.setScale( resize_scale, resize_scale );
-
-    sprite_width = sprite.getLocalBounds().width * resize_scale;
-    sprite.setPosition( ((screen_width - ( sprite_width )) / 2), 0 );
 }
 
 void ImageViewer::hideWindow()
@@ -99,85 +95,64 @@ void ImageViewer::showWindow()
 
 void ImageViewer::nextPage()
 {
-    if ( (pageIndex + 1) < filepaths.size() ) {
-        pageIndex += 1;
-        setImage( filepaths[ pageIndex] );
-    }
+    pageIndex = std::min( static_cast<int>( filepaths.size() - 1 ), pageIndex + 1 );
+    setImage( filepaths[ pageIndex ] );
 }
 
 void ImageViewer::prevPage()
 {
-    if ( (pageIndex - 1) > -1 ) {
-        pageIndex -= 1;
-        setImage( filepaths[ pageIndex ] );
-    }
+    pageIndex = std::max( 0, pageIndex - 1 );
+    setImage( filepaths[ pageIndex ] );
 }
 
 void ImageViewer::zoomImage( sf::Event &event )
 {
     float delta = event.mouseWheelScroll.delta;
-    float interval = 0.04;
-
-    if ( delta > 0 )
-    {
-        resize_scale += interval;
-        if ( resize_scale > 0.80 )
-        {
-            resize_scale = 0.80;
-        }
-        if ( resize_scale != sprite.getScale().y )
-        {
-            sprite.setScale( resize_scale, resize_scale );
-            sprite_width = sprite.getLocalBounds().width * resize_scale;
-
-            sprite.setPosition( ((screen_width - ( sprite_width )) / 2), 0 );
-        }
+    
+    if ( delta > 0 ) {
+        scale_out = std::max( 1.3f, scale_out - .08f );
     }
-    else if ( delta < 0 )
-    {
-        resize_scale -= interval;
-        if ( resize_scale < initial_scale )
-        {
-            resize_scale = initial_scale;
-        }
-        if ( resize_scale != sprite.getScale().x )
-        {
-            sprite.setScale( resize_scale, resize_scale );
-            sprite_width = sprite.getLocalBounds().width * resize_scale;
-
-            sprite.setPosition( ((screen_width - ( sprite_width )) / 2), 0 );
-        }
+    else if ( delta < 0 ) {
+        scale_out = std::min( initial_scale_out, scale_out + .08f );
+      
     }
+    view.setSize( window.getDefaultView().getSize() );
+    view.zoom( scale_out );
+    window.setView( view );
+
+    sf::Vector2i sprPos = window.mapCoordsToPixel( sprite.getPosition() );
+
+    sprite_width = texture.getSize().x / scale_out;
+    sprite_height = texture.getSize().y / scale_out;
+
+    keepImage();
 }
 
 void ImageViewer::dragImage( sf::Event &event )
 {
-    float xdiff = event.mouseMove.x - mouse_image_distance.x;
-    float ydiff = event.mouseMove.y - mouse_image_distance.y;
+    sf::Vector2f newPos = static_cast<sf::Vector2f>( sf::Mouse::getPosition( window ) );
+    sf::Vector2f deltaPos = mousePos - newPos;
 
-    auto rect = sprite.getGlobalBounds();
+    deltaPos.x *= scale_out;
+    deltaPos.y *= scale_out;
 
-    sprite.setPosition( 
-        xdiff,
-        ydiff
-    );
+    view.move( deltaPos.x, deltaPos.y );
+    window.setView( view );
 
-    if ( xdiff > 0 ) {
-        xdiff = 0;
-        sprite.setPosition( 0, ydiff );
+    mousePos = newPos;
+    keepImage();
+}
+
+void ImageViewer::keepImage()
+{
+    sf::Vector2i sprite_pos = window.mapCoordsToPixel( sprite.getPosition() );
+    sf::Vector2i sprite_bounds
+    {
+        sprite_pos.x + sprite_width,
+        sprite_pos.y + sprite_height
+    };
+    if ( sprite_pos.x < 0 ) {
+        
     }
-
-    else if ( xdiff + rect.width < static_cast<float>(screen_width) ) {
-        xdiff = static_cast<float>( screen_width ) - rect.width;
-        sprite.setPosition( xdiff, ydiff );
-    }
-
-    if ( ydiff > 0 ) {
-        sprite.setPosition( xdiff, 0 );
-    }
-
-    else if ( ydiff + rect.height < static_cast<float>( screen_height ) ) {
-        sprite.setPosition( xdiff, static_cast<float>( screen_height ) - rect.height );
-    }
-
+    std::cout << "Sprite x : " << sprite_pos.x << " y : " << sprite_pos.y << '\n';
 }

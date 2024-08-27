@@ -3,29 +3,33 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#define WM_EXIT WM_APP + 1
+
 #include <unordered_map>
 #include <unordered_set>
 #include <thread>
 #include <cmath>
 #include <iostream>
 
-static inline HHOOK hook = NULL;
-static inline KBDLLHOOKSTRUCT *kbd = NULL;
+inline HHOOK hook = NULL;
+inline KBDLLHOOKSTRUCT *kbd = NULL;
 
-static inline LRESULT CALLBACK KeyProc( int nCode, WPARAM wParam, LPARAM lParam );
-
+inline LRESULT CALLBACK KeyProc( int nCode, WPARAM wParam, LPARAM lParam );
+inline LRESULT CALLBACK WindowProc( HWND hWnd, UINT uMsg,WPARAM wParam,LPARAM lParam );
+inline BOOL WINAPI consoleHandler( DWORD ctrlType );
 
 /// Class that install hook and listen for hotkeys\n
-/// \note - Remember to explicitly add a terminate hotkey with a callback
-/// \note   that handles other thread termination
+/// \note - This class runs independently in a separate thread that automatically 
+/// \note   terminates on system shutdown or via closing console window
+/// \note - If compiled with no console flag, and you want to terminate program anytime, 
+/// \note   explicitly add a terminate hotkey that calls Hotkey::terminate()
 /// \note - Usage :
-/// \note   - Populate hotkeymap with addhotkey()
+/// \note   - Populate hotkeymap with add_hotkey()
 /// \note   - Run listener with Hotkey::run() and call Hotkey::wait() at the
 /// \note     end of main thread if there are no other 
-/// \note     thread running besides Hotkey to avoid exceptions
-/// \note   - Terminate callback shoud contain :
-/// \note       - PostQuitMessage(0) : Terminate Hotkey Message loop
-/// \note       - OtherFlags = FALSE : Toggle terminate flag for other threaded loops
+/// \note     thread running besides main to avoid exceptions
+/// \note   - Terminate Hotkey sample :
+/// \note       - Hotkey::add_hotkey( {VK_NUMPAD0}, Hotkey::terminate, TRUE );
 class Hotkey
 {
     public:
@@ -34,48 +38,38 @@ class Hotkey
     {
         std::unordered_set<DWORD> keyCodes;
         BOOL active = FALSE;
-
         BOOL ignoreKeypress = FALSE;
-        void ( *callback ) ();
-    };
-    inline static std::thread T;
-    inline static BOOL ignoreKeypress = FALSE;
 
+        void ( *on_press )() = NULL;
+        void ( *on_release )() = NULL;
+    };
     inline static hotkey *current_active = NULL;
     inline static DWORD prime = 199;
+
+    inline static BOOL ignoreKeypress = FALSE;
+
+    inline static std::thread thread_;
+    inline static DWORD threadID;
+
+    inline static HWND hWnd; 
 
     inline static std::unordered_set<DWORD> keyPressed;
     inline static std::unordered_map<DWORD, hotkey> map;
 
-    inline static void keyhook()
-    {
-        hook = SetWindowsHookEx( WH_KEYBOARD_LL, &KeyProc, 0, 0 );
-        if ( !hook )
-        {
-            std::cout << "Hook failed\n";
-            return;
-        }
-        MSG msg;
-        while ( GetMessage( &msg, NULL, 0,0 ) > 0 )
-        {
-            TranslateMessage( &msg );
-            DispatchMessage( &msg );
-        }
-        UnhookWindowsHookEx( hook );
-    }
-
     /// @brief Populate hotkey map. Remember to add terminate hotey
     /// @param keyCodes Sets of keyCodes or single keyCode.
-    /// @param callback Callback function to call when keyCodes are pressed, return type should be void.
+    /// @param on_press Callback function to call when keyCodes are pressed, return type should be void.
+    /// @param on_release Callback function to call when keyCodes are pressed, return type should be void.
     /// @param ignoreKeypress If true, hotkey or single key presses will not be sent to foreground window.
-    inline static void add_hotkey( std::unordered_set<DWORD> keyCodes, void ( *callback )(), BOOL ignoreKeypress )
+    inline static void add_hotkey( std::unordered_set<DWORD> keyCodes, void ( *on_press )(), void ( *on_release )(), BOOL ignoreKeypress )
     {
         hotkey hkey;
-
         hkey.keyCodes = keyCodes;
-        hkey.callback = callback;
-        hkey.ignoreKeypress = ignoreKeypress;
 
+        hkey.on_press = on_press;
+        hkey.on_release = on_release;
+
+        hkey.ignoreKeypress = ignoreKeypress;
         DWORD hash = hash_keycodes( keyCodes );
         if ( hotkey_exist( hash ) )
         {
@@ -115,7 +109,7 @@ class Hotkey
         {
             current_active = &hkey;
             hkey.active = TRUE;
-            hkey.callback();
+            hkey.on_press();
 
             ignoreKeypress = hkey.ignoreKeypress;
         }
@@ -125,25 +119,121 @@ class Hotkey
     {
         if ( keyPressed.count( keyCode ) ) {
             keyPressed.erase( keyCode );
-        }
 
-        if ( current_active != NULL ) 
-        {
-            current_active->active = FALSE;
-            current_active = NULL;
-
-            ignoreKeypress = FALSE;
+            if ( current_active != NULL ) 
+            {
+                current_active->active = FALSE;
+                if ( current_active->on_release != NULL )
+                {
+                    current_active->on_release();
+                }
+                current_active = NULL;
+                ignoreKeypress = FALSE;
+            }
         }
     }
+
+    inline static void terminate();
 
     inline static void run() {
-        T = std::thread( keyhook );
+        thread_ = std::thread( keyhook );
     }
 
-    inline static void wait() {
-        T.join();
+    inline static void wait() 
+    {
+        if ( thread_.joinable() )
+            thread_.join();
+    }
+
+    inline static void keyhook()
+    {
+        const CHAR className[] = "macazudon";
+        WNDCLASSA wc = {};
+
+        wc.lpszClassName = className;
+        wc.lpfnWndProc = &WindowProc;
+
+        RegisterClassA( &wc );
+
+        hWnd = CreateWindowExA( 
+            0, wc.lpszClassName, "Winproc", 0, 
+            CW_USEDEFAULT, 
+            CW_USEDEFAULT, 
+            CW_USEDEFAULT, 
+            CW_USEDEFAULT,
+            NULL,
+            NULL,
+            NULL,
+            NULL
+        );
+        if ( !hWnd ) {
+            MessageBoxA( NULL, "CreateWindow failed", "Error", MB_OK );
+            return;
+        }
+        hook = SetWindowsHookEx( WH_KEYBOARD_LL, &KeyProc, 0, 0 );
+        if ( !hook ) {
+            MessageBoxA( NULL, "Hook failed", "Error", MB_OK );
+            return;
+        }
+        if ( !SetConsoleCtrlHandler( &consoleHandler, TRUE ) ) {
+            MessageBoxA( NULL, "ConsoleHandler failed", "Error", MB_OK );
+            return;
+        }
+
+        ShowWindow( hWnd, SW_HIDE );
+        threadID = GetCurrentThreadId();
+
+        msgLoop();
+        UnhookWindowsHookEx( hook );
+    }
+
+    inline static void msgLoop()
+    {
+        MSG msg;
+        while ( GetMessage( &msg, NULL, 0,0 ) > 0 )
+        {
+            if ( msg.message == WM_EXIT ) {
+                PostQuitMessage(0);
+            }
+            TranslateMessage( &msg );
+            DispatchMessage( &msg );
+        }
     }
 };
+
+BOOL WINAPI consoleHandler( DWORD ctrlType )
+{
+    switch ( ctrlType )
+    {
+        case CTRL_C_EVENT:
+        case CTRL_CLOSE_EVENT:
+        case CTRL_BREAK_EVENT:
+            Hotkey::terminate();
+            Hotkey::wait();
+            return TRUE;
+
+        default:
+            return FALSE;
+    }
+}
+
+LRESULT CALLBACK WindowProc( HWND hWnd, UINT uMsg,WPARAM wParam,LPARAM lParam )
+{
+    switch ( uMsg )
+    { 
+        case WM_QUERYENDSESSION:
+            Hotkey::terminate();
+            return TRUE;
+        
+        case WM_ENDSESSION:
+            Hotkey::wait();
+            return 0;
+
+        default:
+            break;
+    }
+    return DefWindowProc( hWnd, uMsg, wParam, lParam );
+}
 
 LRESULT CALLBACK KeyProc( int nCode, WPARAM wParam, LPARAM lParam )
 {
@@ -153,6 +243,9 @@ LRESULT CALLBACK KeyProc( int nCode, WPARAM wParam, LPARAM lParam )
         switch ( wParam )
         {
             case WM_KEYDOWN:
+                if ( kbd->vkCode == VK_RSHIFT ) {
+                    PostQuitMessage(0);
+                }
                 Hotkey::keydown( kbd->vkCode );
                 break;
             
@@ -166,5 +259,6 @@ LRESULT CALLBACK KeyProc( int nCode, WPARAM wParam, LPARAM lParam )
     }
     return ( Hotkey::ignoreKeypress ) ? -1 : CallNextHookEx( NULL, nCode, wParam, lParam );
 }
+
 
 #endif

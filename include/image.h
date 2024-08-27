@@ -33,6 +33,8 @@ public:
     static sf::RenderWindow window;
     static sf::WindowHandle windowHandle;
 
+    static sf::View view;
+
     static sf::Image image;
     static sf::Texture texture;
     static sf::Sprite sprite;
@@ -48,14 +50,8 @@ public:
     static float initial_scale;
 
     // Mouse drag
-    static BOOL lockedLeft;
-    static BOOL lockedRight;
-
-    static BOOL lockedTop;
-    static BOOL lockedBottom;
-
     static BOOL draggableImage;
-    static POINT mouse_image_distance;
+    static sf::Vector2f mousePos;
 
     static void open( const char *folder );
     static void setImage( const std::string &filename );
@@ -68,6 +64,8 @@ public:
 
     static void zoomImage( sf::Event &event );
     static void dragImage( sf::Event &event );
+
+    static void keepImage();
 };
 
 #endif

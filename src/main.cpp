@@ -19,6 +19,8 @@ int main()
     INIT_HOTKEY();
     Hotkey::run();
 
+    sf::Vector2i pos;
+
     sf::Event event;
     while ( WindowRunning )
     {
@@ -27,8 +29,8 @@ int main()
             switch ( event.type )
             {
                 case sf::Event::Closed:
-                    WindowRunning = TRUE;
-                    PostQuitMessage(0);
+                    WindowRunning = FALSE;
+                    Hotkey::terminate();
                     break;
                 
                 case sf::Event::MouseWheelScrolled:
@@ -37,11 +39,10 @@ int main()
 
                 case sf::Event::MouseButtonPressed:
                     ImageViewer::draggableImage = TRUE;
-                    ImageViewer::mouse_image_distance = POINT
-                    {
-                        event.mouseButton.x - static_cast<long>( ImageViewer::sprite.getGlobalBounds().getPosition().x ), 
-                        event.mouseButton.y - static_cast<long>( ImageViewer::sprite.getGlobalBounds().getPosition().y )
-                    };
+                    ImageViewer::mousePos = static_cast<sf::Vector2f>(sf::Mouse::getPosition( ImageViewer::window ));
+                    // event.mouseButton.x - static_cast<long>( ImageViewer::sprite.getGlobalBounds().getPosition().x ), 
+                    // event.mouseButton.y - static_cast<long>( ImageViewer::sprite.getGlobalBounds().getPosition().y )
+                    
                     break;
                 
                 case sf::Event::MouseMoved:
@@ -78,17 +79,17 @@ int main()
 
 void INIT_HOTKEY()
 {
-    Hotkey::add_hotkey( {VK_OEM_COMMA, 0x31},              terminate_, FALSE );
-    Hotkey::add_hotkey( {VK_UP},              ImageViewer::showWindow,  TRUE );
-    Hotkey::add_hotkey( {VK_DOWN},            ImageViewer::hideWindow,  TRUE );
-    Hotkey::add_hotkey( {VK_LEFT},              ImageViewer::nextPage,  TRUE );
-    Hotkey::add_hotkey( {VK_RIGHT},             ImageViewer::prevPage,  TRUE );
+    Hotkey::add_hotkey( {VK_OEM_COMMA, 0x31},       Hotkey::terminate, NULL, FALSE );
+    Hotkey::add_hotkey( {VK_UP},              ImageViewer::showWindow, NULL,  TRUE );
+    Hotkey::add_hotkey( {VK_DOWN},            ImageViewer::hideWindow, NULL,  TRUE );
+    Hotkey::add_hotkey( {VK_LEFT},              ImageViewer::nextPage, NULL,  TRUE );
+    Hotkey::add_hotkey( {VK_RIGHT},             ImageViewer::prevPage, NULL,  TRUE );
 }
 
-void terminate_()
+void Hotkey::terminate()
 {
-    PostQuitMessage(0);
     WindowRunning = FALSE;
+    PostThreadMessage( threadID, WM_EXIT, 0, 0 );
 }
 
 
