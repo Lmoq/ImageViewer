@@ -40,9 +40,6 @@ int main()
                 case sf::Event::MouseButtonPressed:
                     ImageViewer::draggableImage = TRUE;
                     ImageViewer::mousePos = static_cast<sf::Vector2f>(sf::Mouse::getPosition( ImageViewer::window ));
-                    // event.mouseButton.x - static_cast<long>( ImageViewer::sprite.getGlobalBounds().getPosition().x ), 
-                    // event.mouseButton.y - static_cast<long>( ImageViewer::sprite.getGlobalBounds().getPosition().y )
-                    
                     break;
                 
                 case sf::Event::MouseMoved:

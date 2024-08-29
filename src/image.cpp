@@ -1,5 +1,6 @@
-#include <image.h>
 #include <iostream>
+#include <cmath>
+#include <image.h>
 
 // Media
 int ImageViewer::pageIndex = 0;
@@ -14,15 +15,15 @@ sf::Color ImageViewer::ClearColor = sf::Color( R, G, B, A );
 sf::RenderWindow ImageViewer::window;
 sf::WindowHandle ImageViewer::windowHandle;
 
-int ImageViewer::screen_width = 0;
-int ImageViewer::screen_height = 0;
+float ImageViewer::screen_width = 0;
+float ImageViewer::screen_height = 0;
 
 sf::Image ImageViewer::image;
 sf::Texture ImageViewer::texture;
 sf::Sprite ImageViewer::sprite;
 
-int ImageViewer::sprite_width = 0;
-int ImageViewer::sprite_height = 0;
+float ImageViewer::sprite_width = 0;
+float ImageViewer::sprite_height = 0;
 
 // Mouse
 sf::View ImageViewer::view;
@@ -47,7 +48,7 @@ void ImageViewer::open( const char *folder )
     texture.loadFromFile( filepaths[0] );
 
     screen_height = sf::VideoMode::getDesktopMode().height;
-    initial_scale_out = static_cast<float>(texture.getSize().y) / static_cast<float>(screen_height);
+    initial_scale_out = static_cast<float>(texture.getSize().y) / screen_height;
     scale_out = initial_scale_out;
 
     sprite_height = texture.getSize().y / scale_out;
@@ -56,7 +57,7 @@ void ImageViewer::open( const char *folder )
     screen_width = sprite_width;
     screen_height = sprite_height;
 
-    printf("scrw(%d) : srch(%d)\n", screen_width, screen_height);
+    printf("scrw(%f) : srch(%f)\n", screen_width, screen_height);
 
     window.create( sf::VideoMode( screen_width, screen_height ), "ImageViewer", sf::Style::None );
     windowHandle = window.getSystemHandle();
@@ -109,22 +110,29 @@ void ImageViewer::zoomImage( sf::Event &event )
 {
     float delta = event.mouseWheelScroll.delta;
     
-    if ( delta > 0 ) {
+    if ( delta > 0 ) 
+    {
         scale_out = std::max( 1.3f, scale_out - .08f );
+
+        float xdiff = static_cast<float>( event.mouseWheelScroll.x ) - ( view.getCenter().x / scale_out );
+        float ydiff = static_cast<float>( event.mouseWheelScroll.y )- ( view.getCenter().y / scale_out );
+
+        view.move( xdiff, ydiff );
     }
-    else if ( delta < 0 ) {
+    else if ( delta < 0 ) 
+    {
         scale_out = std::min( initial_scale_out, scale_out + .08f );
-      
     }
     view.setSize( window.getDefaultView().getSize() );
     view.zoom( scale_out );
+
+
     window.setView( view );
 
     sf::Vector2i sprPos = window.mapCoordsToPixel( sprite.getPosition() );
 
     sprite_width = texture.getSize().x / scale_out;
     sprite_height = texture.getSize().y / scale_out;
-
     keepImage();
 }
 
@@ -145,14 +153,26 @@ void ImageViewer::dragImage( sf::Event &event )
 
 void ImageViewer::keepImage()
 {
-    sf::Vector2i sprite_pos = window.mapCoordsToPixel( sprite.getPosition() );
-    sf::Vector2i sprite_bounds
-    {
-        sprite_pos.x + sprite_width,
-        sprite_pos.y + sprite_height
-    };
-    if ( sprite_pos.x < 0 ) {
-        
-    }
-    std::cout << "Sprite x : " << sprite_pos.x << " y : " << sprite_pos.y << '\n';
+    float half_camera_width_pixels = ( screen_width / 2 ) * scale_out;
+    float half_camera_height_pixels = ( screen_height / 2 ) * scale_out;
+
+    sf::Vector2f center = view.getCenter();
+
+    float leftGap = half_camera_width_pixels - center.x;
+    float topGap = half_camera_height_pixels - center.y;
+
+    float rightGap = center.x - ( static_cast<float>( texture.getSize().x ) - half_camera_width_pixels );
+    float bottomGap = center.y - ( static_cast<float>( texture.getSize().y ) - half_camera_height_pixels );
+
+    if ( leftGap > 0 )
+        view.move( leftGap, 0 );
+    else if ( rightGap > 0 )
+        view.move( -rightGap, 0 );
+
+    if ( topGap > 0 )
+        view.move( 0, topGap );
+    else if ( bottomGap > 0 )
+        view.move( 0, -bottomGap );
+    
+    window.setView( view );
 }

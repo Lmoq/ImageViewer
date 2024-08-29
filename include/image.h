@@ -39,11 +39,11 @@ public:
     static sf::Texture texture;
     static sf::Sprite sprite;
 
-    static int screen_width;
-    static int screen_height;
+    static float screen_width;
+    static float screen_height;
 
-    static int sprite_width;
-    static int sprite_height;
+    static float sprite_width;
+    static float sprite_height;
 
     // Can be retrived using screen_height / texture_height
     static float resize_scale;
