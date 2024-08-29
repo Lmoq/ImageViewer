@@ -39,8 +39,8 @@ public:
     static sf::Texture texture;
     static sf::Sprite sprite;
 
-    static float screen_width;
-    static float screen_height;
+    static float window_width;
+    static float window_height;
 
     static float sprite_width;
     static float sprite_height;
