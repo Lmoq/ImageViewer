@@ -1,14 +1,15 @@
 #include <iostream>
 #include <cmath>
+#include <algorithm>
 #include <image.h>
+#include <lzip.h>
 
 // Media
 int ImageViewer::pageIndex = 0;
-fs::path ImageViewer::image_folder;
-std::vector<std::string> ImageViewer::filepaths;
+
 
 // Window
-BOOL ImageViewer::displayWindow = FALSE;
+bool ImageViewer::windowDisplayed = FALSE;
 UINT8 R = 50, G = 50, B = 50, A = 255;
 sf::Color ImageViewer::ClearColor = sf::Color( R, G, B, A );
 
@@ -33,27 +34,31 @@ float initial_scale_out;
 float scale_out;
 
 // Mouse
-BOOL ImageViewer::draggableImage = FALSE;
+bool ImageViewer::draggableImage = FALSE;
 
-void ImageViewer::open( const char *folder )
+bool ImageViewer::open( const char *path )
 {
-    image_folder = folder;
-    for ( auto &p : fs::directory_iterator( folder ) )
+    // Pupulate path list
+    if ( !Libzip::open_archive( path ) ) 
     {
-        if ( valid_extensions.count( p.path().extension().string() ) ) {
-            filepaths.push_back( p.path().string() );
-        }
+        std::cout << "Arhived failed to open\n";
+        return false;
     }
-    // Setup window and sprite shape
-    texture.loadFromFile( filepaths[0] );
 
+    // Setup window and sprite shape
+    if ( !loadImageFromIndex( 0 ) ) {
+        return false;
+    }
+    
+    // Calculate zoom out scale for the image to fit into window height
     window_height = sf::VideoMode::getDesktopMode().height;
-    initial_scale_out = static_cast<float>(texture.getSize().y) / window_height;
+    initial_scale_out = static_cast<float>( texture.getSize().y ) / window_height;
     scale_out = initial_scale_out;
 
     sprite_height = texture.getSize().y / scale_out;
     sprite_width = texture.getSize().x / scale_out;
 
+    // Create a window that fits the image to load
     window_width = sprite_width;
     window_height = sprite_height;
 
@@ -64,8 +69,8 @@ void ImageViewer::open( const char *folder )
     );
     windowHandle = window.getSystemHandle();
 
+    // Zoom out view to fit image to window
     view = window.getDefaultView();
-    setImage( filepaths[ pageIndex ] );
 
     view.setCenter( texture.getSize().x / 2, texture.getSize().y / 2 );
     view.zoom( scale_out );
@@ -73,46 +78,88 @@ void ImageViewer::open( const char *folder )
 
     SetWindowPos( windowHandle, HWND_TOPMOST, 0,0,0,0, SWP_NOMOVE | SWP_NOSIZE );
     hideWindow();
+
+    return true;
 }
 
-void ImageViewer::setImage( const std::string &filepath )
+bool ImageViewer::setImagefromPath( const std::string &filepath )
 {
-    texture.loadFromFile( filepath );
+    if ( !texture.loadFromFile( filepath ) ) {
+        return false;
+    }
     texture.setSmooth( true );
-
     sprite.setTexture( texture );
+
+    return true;
+}
+
+bool ImageViewer::setImagefromBuffer( std::vector<char> &buffer )
+{
+    if ( !texture.loadFromMemory( buffer.data(), buffer.size() ) ) {
+        return false;
+    }
+    texture.setSmooth( true );
+    sprite.setTexture( texture );
+
+    return true;
+}
+
+bool ImageViewer::loadImageFromIndex( int index )
+{
+    std::vector<char> img_buffer;
+    if ( !Libzip::get_item_buffer( index, img_buffer ) ) 
+    {
+        std::cout << "Failed to get buffer\n";
+        return false;
+    }
+    if ( !setImagefromBuffer( img_buffer ) )
+    {
+        std::cout << "Failed to load texture from buffer\n";
+        return false;
+    }
+    return true;
 }
 
 void ImageViewer::hideWindow()
 {
     ShowWindow( windowHandle, SW_HIDE );
-    displayWindow = FALSE;
+    windowDisplayed = FALSE;
 }
 
 void ImageViewer::showWindow()
 {
     ShowWindow( windowHandle, SW_SHOW );
-    displayWindow = TRUE;
+    windowDisplayed = TRUE;
 }
 
 void ImageViewer::nextPage()
 {
-    pageIndex = std::min( static_cast<int>( filepaths.size() - 1 ), pageIndex + 1 );
-    setImage( filepaths[ pageIndex ] );
+    int new_index = min( static_cast<int>( Libzip::max_index - 1 ), pageIndex + 1 );
+    if ( pageIndex != new_index )
+    {
+        pageIndex = new_index;
+        std::cout << "index : " << pageIndex << '\n';
+        loadImageFromIndex( pageIndex );
+    }
 }
 
 void ImageViewer::prevPage()
 {
-    pageIndex = std::max( 0, pageIndex - 1 );
-    setImage( filepaths[ pageIndex ] );
+    int new_index = max( 0, pageIndex - 1 );
+    if ( pageIndex != new_index )
+    {
+        pageIndex = new_index;
+        loadImageFromIndex( pageIndex );
+    }
 }
 
 void ImageViewer::zoomImage( sf::Event &event )
 {
     float delta = event.mouseWheelScroll.delta;
+    float speed = 0.10;
     if ( delta > 0 )
     {
-        float new_scale = std::max( 1.3f, scale_out - .08f );
+        float new_scale = max( 1.3f, scale_out - speed);
         if ( scale_out != new_scale ) {
             view.move(
                 ( static_cast<float>( event.mouseWheelScroll.x ) - ( window_width / 2.0 ) ) / 8, 
@@ -123,7 +170,7 @@ void ImageViewer::zoomImage( sf::Event &event )
     }
     else if ( delta < 0 )
     {
-        scale_out = std::min( initial_scale_out, scale_out + .08f );
+        scale_out = min( initial_scale_out, scale_out + speed);
     }
     view.setSize( window.getDefaultView().getSize() );
     view.zoom( scale_out );
@@ -136,7 +183,7 @@ void ImageViewer::zoomImage( sf::Event &event )
     keepImage();
 }
 
-void ImageViewer::dragImage( sf::Event &event )
+void ImageViewer::dragImage()
 {
     sf::Vector2f newPos = static_cast<sf::Vector2f>( sf::Mouse::getPosition( window ) );
     sf::Vector2f deltaPos = mousePos - newPos;

@@ -47,6 +47,7 @@ class Hotkey
     inline static DWORD prime = 199;
 
     inline static BOOL ignoreKeypress = FALSE;
+    inline static BOOL INIT_FAILED = FALSE;
 
     inline static std::thread thread_;
     inline static DWORD threadID;
@@ -61,7 +62,7 @@ class Hotkey
     /// @param on_press Callback function to call when keyCodes are pressed, return type should be void.
     /// @param on_release Callback function to call when keyCodes are pressed, return type should be void.
     /// @param ignoreKeypress If true, hotkey or single key presses will not be sent to foreground window.
-    inline static void add_hotkey( std::unordered_set<DWORD> keyCodes, void ( *on_press )(), void ( *on_release )(), BOOL ignoreKeypress )
+    inline static void add_hotkey( std::unordered_set<DWORD> keyCodes, void ( *on_press )(), void ( *on_release )(), BOOL ignkp )
     {
         hotkey hkey;
         hkey.keyCodes = keyCodes;
@@ -69,7 +70,7 @@ class Hotkey
         hkey.on_press = on_press;
         hkey.on_release = on_release;
 
-        hkey.ignoreKeypress = ignoreKeypress;
+        hkey.ignoreKeypress = ignkp;
         DWORD hash = hash_keycodes( keyCodes );
         if ( hotkey_exist( hash ) )
         {
@@ -168,22 +169,23 @@ class Hotkey
         );
         if ( !hWnd ) {
             MessageBoxA( NULL, "CreateWindow failed", "Error", MB_OK );
-            return;
+            INIT_FAILED = TRUE;
         }
         hook = SetWindowsHookEx( WH_KEYBOARD_LL, &KeyProc, 0, 0 );
         if ( !hook ) {
             MessageBoxA( NULL, "Hook failed", "Error", MB_OK );
-            return;
+            INIT_FAILED = TRUE;
         }
         if ( !SetConsoleCtrlHandler( &consoleHandler, TRUE ) ) {
             MessageBoxA( NULL, "ConsoleHandler failed", "Error", MB_OK );
-            return;
+            INIT_FAILED = TRUE;
         }
-
-        ShowWindow( hWnd, SW_HIDE );
         threadID = GetCurrentThreadId();
-
-        msgLoop();
+        if ( !INIT_FAILED ) 
+        {
+            ShowWindow( hWnd, SW_HIDE );
+            msgLoop();
+        }
         UnhookWindowsHookEx( hook );
     }
 

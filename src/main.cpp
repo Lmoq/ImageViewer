@@ -2,8 +2,9 @@
 #include <image.h>
 #include <main.h>
 #include <hotkey.h>
+#include <lzip.h>
 
-static BOOL WindowRunning = TRUE;
+static bool WindowRunning = false;
 static sf::Clock winClock;
 
 static UINT8 FPS = 60;
@@ -14,7 +15,7 @@ static sf::Int32 lastframetime = winClock.getElapsedTime().asMilliseconds();
 
 int main()
 {
-    ImageViewer::open( MIHON );
+    WindowRunning = ImageViewer::open( MIHON );
 
     INIT_HOTKEY();
     Hotkey::run();
@@ -44,7 +45,7 @@ int main()
                 
                 case sf::Event::MouseMoved:
                     if ( ImageViewer::draggableImage )
-                        ImageViewer::dragImage( event );
+                        ImageViewer::dragImage();
                     break;
 
                 case sf::Event::MouseButtonReleased:
@@ -56,7 +57,7 @@ int main()
             }
         }
 
-        if ( ImageViewer::displayWindow )
+        if ( ImageViewer::windowDisplayed )
         {
             ImageViewer::window.clear( ImageViewer::ClearColor );
             ImageViewer::window.draw( ImageViewer::sprite );
@@ -70,7 +71,10 @@ int main()
         }
         lastframetime = winClock.getElapsedTime().asMilliseconds();
     }
-    ImageViewer::window.close();
+    if ( ImageViewer::window.isOpen() ) {
+        ImageViewer::window.close();
+    }
+    Libzip::close();
     Hotkey::wait();
 }
 

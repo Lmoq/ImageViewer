@@ -1,7 +1,7 @@
 #ifndef _IMAGE_
 #define _IMAGE_
 
-#define MIHON "F:/Backup/.Oppo/Download/.mpak/Mihon/downloads/Comick (EN)/custom_Chapter 84.5_ (Growth Process _ Volume 16 Extras)"
+#define MIHON "F:/Backup/.Oppo/Download/.mpak/Mihon/downloads/Comick (EN)/chapter.cbz"
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
@@ -23,11 +23,9 @@ public:
 
     // Media info
     static int pageIndex;
-    static fs::path image_folder;
-    static std::vector<std::string> filepaths;
-
+ 
     // Window
-    static BOOL displayWindow;
+    static bool windowDisplayed;
     static sf::Color ClearColor;
 
     static sf::RenderWindow window;
@@ -50,12 +48,17 @@ public:
     static float initial_scale;
 
     // Mouse drag
-    static BOOL draggableImage;
+    static bool draggableImage;
     static sf::Vector2f mousePos;
 
-    static void open( const char *folder );
-    static void setImage( const std::string &filename );
-    
+    static bool open( const char *path );
+
+    static bool setImagefromPath( const std::string &filename );
+    static bool setImagefromBuffer( std::vector<char> &buffer );
+
+    // Set texture to selected image index
+    static bool loadImageFromIndex( int index );
+
     static void hideWindow();
     static void showWindow();
 
@@ -63,7 +66,7 @@ public:
     static void prevPage();
 
     static void zoomImage( sf::Event &event );
-    static void dragImage( sf::Event &event );
+    static void dragImage();
 
     static void keepImage();
 };
