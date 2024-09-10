@@ -11,6 +11,7 @@ std::vector<std::string> Libzip::filenames;
 char Libzip::archive_path[ 256 ] = "";
 int Libzip::max_index = 0;
 
+// Set class member archive, max_index and populate filenames list
 bool Libzip::open_archive( const char *path )
 {
     archive = zip_open( path, ZIP_RDONLY, NULL );
@@ -22,15 +23,13 @@ bool Libzip::open_archive( const char *path )
     if ( num_files <= 0 ) {
         return false;
     }
-    std::cout << num_files << " total files\n";
+
     zip_stat_t stat = {};
-    
     for ( int i = 0; i < num_files; i ++ )
     {
         if ( zip_stat_index( archive, i, 0, &stat ) == 0 &&
-             std::string(".jpg .png .jpeg ").find( fs::path( stat.name ).extension().string() ) != std::string::npos ) 
+             std::string( ".jpg .png .jpeg " ).find( fs::path( stat.name ).extension().string() ) != std::string::npos ) 
         {
-            printf("[%02lld] %s size[%lld]\n", stat.index, stat.name, stat.size );
             filenames.push_back( stat.name );
             max_index ++;
         }

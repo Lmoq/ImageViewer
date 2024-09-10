@@ -1,7 +1,7 @@
 #ifndef _IMAGE_
 #define _IMAGE_
 
-#define MIHON "F:/Backup/.Oppo/Download/.mpak/Mihon/downloads/Comick (EN)/chapter.cbz"
+#define MIHON "F:/Backup/.Oppo/Download/.mpak/Mihon/downloads/Comick (EN)/Grand Blue Dreaming/Official_Chapter 4.cbz"
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
@@ -53,14 +53,21 @@ public:
 
     static bool open( const char *path );
 
+    static float getImageFitScale( sf::Texture &image_texture );
+    static void setViewZoom( float zoom_scale, bool center );
+
     static bool setImagefromPath( const std::string &filename );
     static bool setImagefromBuffer( std::vector<char> &buffer );
 
-    // Set texture to selected image index
+    // Set texture to selected filepath index
     static bool loadImageFromIndex( int index );
 
     static void hideWindow();
     static void showWindow();
+
+    /// @brief 
+    /// @param pos Anchor window to [0] left, [1] center, [2] right
+    static void anchorWindow( int pos );
 
     static void nextPage();
     static void prevPage();

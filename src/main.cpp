@@ -74,22 +74,33 @@ int main()
     if ( ImageViewer::window.isOpen() ) {
         ImageViewer::window.close();
     }
-    Libzip::close();
     Hotkey::wait();
 }
 
 void INIT_HOTKEY()
 {
+    // Terminate
     Hotkey::add_hotkey( {VK_OEM_COMMA, 0x31},       Hotkey::terminate, NULL, FALSE );
+
+    // Window display
     Hotkey::add_hotkey( {VK_UP},              ImageViewer::showWindow, NULL,  TRUE );
     Hotkey::add_hotkey( {VK_DOWN},            ImageViewer::hideWindow, NULL,  TRUE );
+
+    // Navigate Pages
     Hotkey::add_hotkey( {VK_LEFT},              ImageViewer::nextPage, NULL,  TRUE );
     Hotkey::add_hotkey( {VK_RIGHT},             ImageViewer::prevPage, NULL,  TRUE );
+
+    // Anchor window
+    Hotkey::add_hotkey( {VK_DIVIDE},      [](){ ImageViewer::anchorWindow( 0 ); }, NULL, TRUE );
+    Hotkey::add_hotkey( {VK_MULTIPLY},    [](){ ImageViewer::anchorWindow( 1 ); }, NULL, TRUE );
+    Hotkey::add_hotkey( {VK_SUBTRACT},    [](){ ImageViewer::anchorWindow( 2 ); }, NULL, TRUE );
+
 }
 
 void Hotkey::terminate()
 {
     WindowRunning = FALSE;
+    Libzip::close();
     PostThreadMessage( threadID, WM_EXIT, 0, 0 );
 }
 
