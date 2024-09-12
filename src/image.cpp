@@ -5,7 +5,7 @@
 #include <lzip.h>
 
 // Media
-int ImageViewer::pageIndex = 37;
+int ImageViewer::pageIndex = 0;
 
 
 // Window
@@ -45,8 +45,8 @@ bool ImageViewer::open( const char *path )
         return false;
     }
 
-    int n = pageIndex;
-    do { // Loads image until it finds a horizontal image to set window shape
+    int n = 0;
+    do { // Loads image until it finds a vertical image to set window shape
         ImageViewer::loadImageFromIndex( n );
         n++;
     } while ( texture.getSize().x > texture.getSize().y );

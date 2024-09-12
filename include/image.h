@@ -15,12 +15,6 @@ namespace fs = std::filesystem;
 class ImageViewer
 {
 public:
-    inline static std::unordered_set<std::string> valid_extensions = {
-        ".jpg",
-        ".png",
-        ".jpeg"
-    };
-
     // Media info
     static int pageIndex;
  

@@ -2,6 +2,5 @@
 #define _MAIN_
 
 void INIT_HOTKEY();
-void terminate_();
 
 #endif
