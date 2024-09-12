@@ -1,4 +1,6 @@
 #include <iostream>
+#include <ShObjIdl.h>
+
 #include <image.h>
 #include <main.h>
 #include <hotkey.h>
@@ -15,10 +17,18 @@ static sf::Int32 lastframetime = winClock.getElapsedTime().asMilliseconds();
 
 int main()
 {
-    WindowRunning = ImageViewer::open( MIHON );
+    HRESULT hr = CoInitializeEx( NULL, COINIT_MULTITHREADED );
+    if ( SUCCEEDED( hr ) ) 
+    {
+        std::string folderPath;
+        if ( SUCCEEDED( File_M::open_folder_dialog( folderPath ) ) ) {
+            std::cout << " Folder [ " << folderPath << " ] \n";
+        }
+    }
+    // WindowRunning = ImageViewer::open( MIHON );
 
-    INIT_HOTKEY();
-    Hotkey::run();
+    // INIT_HOTKEY();
+    // Hotkey::run();
 
     sf::Vector2i pos;
 
@@ -40,12 +50,14 @@ int main()
 
                 case sf::Event::MouseButtonPressed:
                     ImageViewer::draggableImage = TRUE;
-                    ImageViewer::mousePos = static_cast<sf::Vector2f>(sf::Mouse::getPosition( ImageViewer::window ));
+                    ImageViewer::mousePos = { 
+                        static_cast<float>( event.mouseMove.x ), 
+                        static_cast<float>( event.mouseMove.y ) };
                     break;
                 
                 case sf::Event::MouseMoved:
                     if ( ImageViewer::draggableImage )
-                        ImageViewer::dragImage();
+                        ImageViewer::dragImage( event );
                     break;
 
                 case sf::Event::MouseButtonReleased:
@@ -74,7 +86,12 @@ int main()
     if ( ImageViewer::window.isOpen() ) {
         ImageViewer::window.close();
     }
-    Hotkey::wait();
+    if ( SUCCEEDED( hr ) ) {
+        CoUninitialize();
+    }
+    // Hotkey::wait();
+    File_M::close();
+    std::cout << "Done\n";
 }
 
 void INIT_HOTKEY()
@@ -94,13 +111,12 @@ void INIT_HOTKEY()
     Hotkey::add_hotkey( {VK_DIVIDE},      [](){ ImageViewer::anchorWindow( 0 ); }, NULL, TRUE );
     Hotkey::add_hotkey( {VK_MULTIPLY},    [](){ ImageViewer::anchorWindow( 1 ); }, NULL, TRUE );
     Hotkey::add_hotkey( {VK_SUBTRACT},    [](){ ImageViewer::anchorWindow( 2 ); }, NULL, TRUE );
-
 }
 
 void Hotkey::terminate()
 {
     WindowRunning = FALSE;
-    Libzip::close();
+    File_M::close();
     PostThreadMessage( threadID, WM_EXIT, 0, 0 );
 }
 

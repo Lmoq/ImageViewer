@@ -67,7 +67,7 @@ public:
     static void prevPage();
 
     static void zoomImage( sf::Event &event );
-    static void dragImage();
+    static void dragImage( sf::Event &event );
 
     static void keepImage();
 };

@@ -39,7 +39,7 @@ bool ImageViewer::draggableImage = FALSE;
 bool ImageViewer::open( const char *path )
 {
     // Populate image path list
-    if ( !Libzip::open_archive( path ) ) 
+    if ( !File_M::open_archive( path ) ) 
     {
         std::cout << "Arhived failed to open\n";
         return false;
@@ -69,7 +69,6 @@ bool ImageViewer::open( const char *path )
 
     // Zoom view to fit image to window
     view = window.getDefaultView();
-    std::cout << "wd: " << window_width << '\n';
 
     ImageViewer::setViewZoom( current_view_scale, true );
     ImageViewer::anchorWindow( 1 );
@@ -119,6 +118,7 @@ bool ImageViewer::setImagefromBuffer( std::vector<char> &buffer )
 {
     texture = sf::Texture();
     sprite = sf::Sprite();
+
     if ( !texture.loadFromMemory( buffer.data(), buffer.size() ) ) {
         return false;
     }
@@ -131,7 +131,7 @@ bool ImageViewer::setImagefromBuffer( std::vector<char> &buffer )
 bool ImageViewer::loadImageFromIndex( int index )
 {
     std::vector<char> img_buffer;
-    if ( !Libzip::get_item_buffer( index, img_buffer ) )
+    if ( !File_M::get_item_buffer( index, img_buffer ) )
     {
         std::cout << "Failed to get buffer\n";
         return false;
@@ -158,12 +158,13 @@ void ImageViewer::showWindow()
 
 void ImageViewer::nextPage()
 {
-    int new_index = min( static_cast<int>( Libzip::max_index - 1 ), pageIndex + 1 );
+    int new_index = min( static_cast<int>( File_M::max_index ), pageIndex + 1 );
     if ( pageIndex != new_index )
     {
         pageIndex = new_index;
-        loadImageFromIndex( pageIndex );
-
+        if ( !loadImageFromIndex( pageIndex ) ) {
+            return;
+        }
         zoomed_out_scale = getImageFitScale( texture );
         current_view_scale = zoomed_out_scale;
 
@@ -178,8 +179,9 @@ void ImageViewer::prevPage()
     if ( pageIndex != new_index )
     {
         pageIndex = new_index;
-        loadImageFromIndex( pageIndex );
-
+        if ( !loadImageFromIndex( pageIndex ) ) {
+            return;
+        }
         zoomed_out_scale = getImageFitScale( texture );
         current_view_scale = zoomed_out_scale;
 
@@ -209,8 +211,8 @@ void ImageViewer::setViewZoom( float zoom_scale, bool center )
 
     if ( center ) {
         view.setCenter( 
-            static_cast<float>(texture.getSize().x) / 2, 
-            static_cast<float>(texture.getSize().y) / 2 
+            static_cast<float>( texture.getSize().x ) / 2, 
+            static_cast<float>( texture.getSize().y ) / 2 
         );
     }
     window.setView( view );
@@ -239,12 +241,14 @@ void ImageViewer::zoomImage( sf::Event &event )
     }
     ImageViewer::setViewZoom( current_view_scale, false );
 
-    ImageViewer::keepImage();
+    if ( current_view_scale != zoomed_out_scale ) {
+        ImageViewer::keepImage();
+    }
 }
 
-void ImageViewer::dragImage()
+void ImageViewer::dragImage( sf::Event &event )
 {
-    sf::Vector2f newPos = static_cast<sf::Vector2f>( sf::Mouse::getPosition( window ) );
+    sf::Vector2f newPos( event.mouseMove.x, event.mouseMove.y );
     sf::Vector2f deltaPos = mousePos - newPos;
 
     deltaPos.x *= current_view_scale;
@@ -254,7 +258,10 @@ void ImageViewer::dragImage()
     window.setView( view );
 
     mousePos = newPos;
-    ImageViewer::keepImage();
+
+    if ( current_view_scale != zoomed_out_scale ) {
+        ImageViewer::keepImage();
+    }
 }
 
 void ImageViewer::keepImage()
@@ -269,12 +276,7 @@ void ImageViewer::keepImage()
     sf::Vector2f center = view.getCenter();
     sf::Vector2i sprPos = window.mapCoordsToPixel( sprite.getPosition() );
 
-    printf( "Spry[%.d] SprBttm[%d] ImageIn[%d]\n", 
-            sprPos.y, sprPos.y + static_cast<int>(sprite_height),
-            ( sprite_width < sprite_height || (sprite_width > sprite_height && (sprPos.y <= 0 && sprPos.y + sprite_height >= window_height))) );
-
-
-    // Check if sprite bounds reveals window background
+    // Check if sprite corners detached from window corners
     float left = sprPos.x;
     float top = sprPos.y;
 
@@ -288,22 +290,21 @@ void ImageViewer::keepImage()
         view.setCenter( center_view_limit_right, center.y );
     }
 
+    // Center the view when zooming to a horizontal image and disable y drag
     if ( sprite_width > sprite_height && !( sprite_height >= window_height ) ) {
-        std::cout << "Centered\n";
         view.setCenter( view.getCenter().x, texture.getSize().y / 2 );
     }
 
     if ( sprite_width < sprite_height ||
+        // Enable y drag if horizontal image size is zoomed enough to exceed view size
        ( sprite_width > sprite_height && ( sprite_height >= window_height ) ) )
     {
         if ( top > 0 ) {
-            std::cout << "Top\n";
             view.setCenter( view.getCenter().x, center_view_limit_top );
         }
         else if ( bottom < window_height ) {
             view.setCenter( view.getCenter().x, center_view_limit_bottom );
         }
     }
-    // if ( sprite_width > sprite_height )
     window.setView( view );
 }
