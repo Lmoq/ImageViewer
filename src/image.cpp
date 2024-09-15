@@ -26,7 +26,7 @@ sf::Sprite ImageViewer::sprite;
 float ImageViewer::sprite_width = 0;
 float ImageViewer::sprite_height = 0;
 
-// Mouse
+// Window view
 sf::View ImageViewer::view;
 sf::Vector2f ImageViewer::mousePos;
 
@@ -39,8 +39,7 @@ bool ImageViewer::draggableImage = FALSE;
 bool ImageViewer::open( const char *path )
 {
     // Populate image path list
-    if ( !File_M::open_archive( path ) ) 
-    {
+    if ( !fm::Chapter::open_archive( path ) ) {
         std::cout << "Arhived failed to open\n";
         return false;
     }
@@ -131,7 +130,7 @@ bool ImageViewer::setImagefromBuffer( std::vector<char> &buffer )
 bool ImageViewer::loadImageFromIndex( int index )
 {
     std::vector<char> img_buffer;
-    if ( !File_M::get_item_buffer( index, img_buffer ) )
+    if ( !fm::Chapter::get_index_buffer( index, img_buffer ) )
     {
         std::cout << "Failed to get buffer\n";
         return false;
@@ -142,52 +141,6 @@ bool ImageViewer::loadImageFromIndex( int index )
         return false;
     }
     return true;
-}
-
-void ImageViewer::hideWindow()
-{
-    ShowWindow( windowHandle, SW_HIDE );
-    windowDisplayed = FALSE;
-}
-
-void ImageViewer::showWindow()
-{
-    ShowWindow( windowHandle, SW_SHOW );
-    windowDisplayed = TRUE;
-}
-
-void ImageViewer::nextPage()
-{
-    int new_index = min( static_cast<int>( File_M::max_index ), pageIndex + 1 );
-    if ( pageIndex != new_index )
-    {
-        pageIndex = new_index;
-        if ( !loadImageFromIndex( pageIndex ) ) {
-            return;
-        }
-        zoomed_out_scale = getImageFitScale( texture );
-        current_view_scale = zoomed_out_scale;
-
-        setViewZoom( zoomed_out_scale, true );
-        keepImage();
-    }
-}
-
-void ImageViewer::prevPage()
-{
-    int new_index = max( 0, pageIndex - 1 );
-    if ( pageIndex != new_index )
-    {
-        pageIndex = new_index;
-        if ( !loadImageFromIndex( pageIndex ) ) {
-            return;
-        }
-        zoomed_out_scale = getImageFitScale( texture );
-        current_view_scale = zoomed_out_scale;
-
-        setViewZoom( zoomed_out_scale, true );
-        keepImage();
-    }
 }
 
 float ImageViewer::getImageFitScale( sf::Texture &image_texture )
@@ -231,6 +184,7 @@ void ImageViewer::zoomImage( sf::Event &event )
                 ( static_cast<float>( event.mouseWheelScroll.x ) - ( window_width / 2.0 ) ) / 8, 
                 ( static_cast<float>( event.mouseWheelScroll.y ) - ( window_height / 2.0 ) ) / 8 
             );
+            
         }
         current_view_scale = new_scale;
     }
@@ -239,16 +193,16 @@ void ImageViewer::zoomImage( sf::Event &event )
     {
         current_view_scale = min( zoomed_out_scale, current_view_scale + offset);
     }
-    ImageViewer::setViewZoom( current_view_scale, false );
 
     if ( current_view_scale != zoomed_out_scale ) {
+        ImageViewer::setViewZoom( current_view_scale, false );
         ImageViewer::keepImage();
     }
 }
 
 void ImageViewer::dragImage( sf::Event &event )
 {
-    sf::Vector2f newPos( event.mouseMove.x, event.mouseMove.y );
+    sf::Vector2f newPos( static_cast<sf::Vector2f>( sf::Mouse::getPosition( window ) ) );
     sf::Vector2f deltaPos = mousePos - newPos;
 
     deltaPos.x *= current_view_scale;
@@ -259,9 +213,8 @@ void ImageViewer::dragImage( sf::Event &event )
 
     mousePos = newPos;
 
-    if ( current_view_scale != zoomed_out_scale ) {
-        ImageViewer::keepImage();
-    }
+    ImageViewer::keepImage();
+    
 }
 
 void ImageViewer::keepImage()
@@ -307,4 +260,51 @@ void ImageViewer::keepImage()
         }
     }
     window.setView( view );
+}
+
+
+void ImageViewer::hideWindow()
+{
+    ShowWindow( windowHandle, SW_HIDE );
+    windowDisplayed = FALSE;
+}
+
+void ImageViewer::showWindow()
+{
+    ShowWindow( windowHandle, SW_SHOW );
+    windowDisplayed = TRUE;
+}
+
+void ImageViewer::nextPage()
+{
+    int new_index = min( static_cast<int>( fm::Chapter::num_index ), pageIndex + 1 );
+    if ( pageIndex != new_index )
+    {
+        pageIndex = new_index;
+        if ( !loadImageFromIndex( pageIndex ) ) {
+            return;
+        }
+        zoomed_out_scale = getImageFitScale( texture );
+        current_view_scale = zoomed_out_scale;
+
+        setViewZoom( zoomed_out_scale, true );
+        keepImage();
+    }
+}
+
+void ImageViewer::prevPage()
+{
+    int new_index = max( 0, pageIndex - 1 );
+    if ( pageIndex != new_index )
+    {
+        pageIndex = new_index;
+        if ( !loadImageFromIndex( pageIndex ) ) {
+            return;
+        }
+        zoomed_out_scale = getImageFitScale( texture );
+        current_view_scale = zoomed_out_scale;
+
+        setViewZoom( zoomed_out_scale, true );
+        keepImage();
+    }
 }

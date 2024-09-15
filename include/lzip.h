@@ -2,25 +2,55 @@
 #define _LIBZIP_
 
 #include <vector>
+#include <unordered_set>
+#include <unordered_map>
 #include <string>
 #include <zip.h>
 
-
-class File_M
+namespace fm
 {
-    public:
+    inline static std::unordered_set<std::string> image_extensions = {
+        ".jpg",
+        ".png",
+        ".jpeg"
+    };
 
-    static std::string archive_path;
-    static zip *archive;
-    static int max_index;
+    typedef enum {
+        ARCHIVED,
+        DIRECTORY
+    } enum_series_type;
 
-    static std::vector<std::string> filenames;
+    HRESULT open_folder_dialog( std::string &result );
 
-    static HRESULT open_folder_dialog( std::string &result );
-    static bool open_archive( const char *path );
+    class Chapter
+    {
+        public:
 
-    static bool get_item_buffer( int index, std::vector<char> &out_buffer );
-    static void close();
+        static zip *archive;
+        static std::string path;
+
+        static std::vector<std::string> file_names;
+        static int num_index;
+
+        static bool open_archive( const char *path );
+        static bool get_index_buffer( int index, std::vector<char> &out_buffer );
+    };
+
+    class Series
+    {
+        public:
+        
+        static std::string path;
+        static enum_series_type chapter_type;
+
+        static std::unordered_map<float, std::string> chapter_map;
+
+        static enum_series_type check_series_type();
+        static bool open_series( const char *path );
+        static void sort_chapters();
+
+        static void close();
+    };
 };
 
 #endif

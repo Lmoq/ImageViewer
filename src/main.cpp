@@ -9,28 +9,28 @@
 static bool WindowRunning = false;
 static sf::Clock winClock;
 
-static UINT8 FPS = 60;
-static UINT8 FrameTime = 1000 / FPS;
+static sf::Int32 FPS = 60;
+static float FrameTime = 1.0 / static_cast<float>(FPS);
 
-static sf::Int32 timeleft;
-static sf::Int32 lastframetime = winClock.getElapsedTime().asMilliseconds();
+static float timeleft;
+static float lastframetime = winClock.getElapsedTime().asSeconds();
 
 int main()
 {
     HRESULT hr = CoInitializeEx( NULL, COINIT_MULTITHREADED );
     if ( SUCCEEDED( hr ) ) 
     {
-        std::string folderPath;
-        if ( SUCCEEDED( File_M::open_folder_dialog( folderPath ) ) ) {
-            std::cout << " Folder [ " << folderPath << " ] \n";
+        std::string folderPath = "Empty";
+        if ( SUCCEEDED( fm::open_folder_dialog( folderPath ) ) ) 
+        {
+            fm::Series::open_series( folderPath.c_str() );
+
         }
     }
-    // WindowRunning = ImageViewer::open( MIHON );
 
+    // WindowRunning = ImageViewer::open( MIHON );
     // INIT_HOTKEY();
     // Hotkey::run();
-
-    sf::Vector2i pos;
 
     sf::Event event;
     while ( WindowRunning )
@@ -50,9 +50,7 @@ int main()
 
                 case sf::Event::MouseButtonPressed:
                     ImageViewer::draggableImage = TRUE;
-                    ImageViewer::mousePos = { 
-                        static_cast<float>( event.mouseMove.x ), 
-                        static_cast<float>( event.mouseMove.y ) };
+                    ImageViewer::mousePos = static_cast<sf::Vector2f>( sf::Mouse::getPosition( ImageViewer::window ) );
                     break;
                 
                 case sf::Event::MouseMoved:
@@ -76,12 +74,12 @@ int main()
             ImageViewer::window.display();
         }
 
-        timeleft = FrameTime - ( winClock.getElapsedTime().asMilliseconds() - lastframetime );
+        timeleft = FrameTime - ( winClock.getElapsedTime().asSeconds() - lastframetime );
         if ( timeleft > 0 && timeleft <= FrameTime )
         {
-            sf::sleep( sf::milliseconds( timeleft ) );
+            sf::sleep( sf::seconds( timeleft ) );
         }
-        lastframetime = winClock.getElapsedTime().asMilliseconds();
+        lastframetime = winClock.getElapsedTime().asSeconds();
     }
     if ( ImageViewer::window.isOpen() ) {
         ImageViewer::window.close();
@@ -90,7 +88,6 @@ int main()
         CoUninitialize();
     }
     // Hotkey::wait();
-    File_M::close();
     std::cout << "Done\n";
 }
 
@@ -116,7 +113,7 @@ void INIT_HOTKEY()
 void Hotkey::terminate()
 {
     WindowRunning = FALSE;
-    File_M::close();
+    fm::Series::close();
     PostThreadMessage( threadID, WM_EXIT, 0, 0 );
 }
 
