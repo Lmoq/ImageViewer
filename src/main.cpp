@@ -17,20 +17,21 @@ static float lastframetime = winClock.getElapsedTime().asSeconds();
 
 int main()
 {
-    HRESULT hr = CoInitializeEx( NULL, COINIT_MULTITHREADED );
-    if ( SUCCEEDED( hr ) ) 
-    {
-        std::string folderPath = "Empty";
-        if ( SUCCEEDED( fm::open_folder_dialog( folderPath ) ) ) 
-        {
-            fm::Series::open_series( folderPath.c_str() );
+    // HRESULT hr = CoInitializeEx( NULL, COINIT_MULTITHREADED );
+    // if ( SUCCEEDED( hr ) ) 
+    // {
+    //     std::string folderPath = "Empty";
+    //     if ( SUCCEEDED( fm::open_folder_dialog( folderPath ) ) ) 
+    //     {
+    //         fm::Series::open_series( folderPath.c_str() );
+    //     }
+    // }
 
-        }
-    }
+    WindowRunning = ImageViewer::open( MIHON );
+    INIT_HOTKEY();
+    Hotkey::run();
 
-    // WindowRunning = ImageViewer::open( MIHON );
-    // INIT_HOTKEY();
-    // Hotkey::run();
+    std::cout << "ready\n";
 
     sf::Event event;
     while ( WindowRunning )
@@ -45,17 +46,24 @@ int main()
                     break;
                 
                 case sf::Event::MouseWheelScrolled:
-                    ImageViewer::zoomImage( event );
+                    if ( !ImageViewer::previewNextChapter )
+                        ImageViewer::zoomImage( event );
                     break;
 
                 case sf::Event::MouseButtonPressed:
-                    ImageViewer::draggableImage = TRUE;
-                    ImageViewer::mousePos = static_cast<sf::Vector2f>( sf::Mouse::getPosition( ImageViewer::window ) );
+                    if ( !ImageViewer::previewNextChapter )
+                    {
+                        ImageViewer::draggableImage = TRUE;
+                        ImageViewer::mousePos = static_cast<sf::Vector2f>( sf::Mouse::getPosition( ImageViewer::window ) );
+                    }
                     break;
                 
                 case sf::Event::MouseMoved:
-                    if ( ImageViewer::draggableImage )
-                        ImageViewer::dragImage( event );
+                    if ( !ImageViewer::previewNextChapter ) 
+                    {
+                        if ( ImageViewer::draggableImage )
+                            ImageViewer::dragImage( event );
+                    }
                     break;
 
                 case sf::Event::MouseButtonReleased:
@@ -70,7 +78,13 @@ int main()
         if ( ImageViewer::windowDisplayed )
         {
             ImageViewer::window.clear( ImageViewer::ClearColor );
-            ImageViewer::window.draw( ImageViewer::sprite );
+
+            if ( ImageViewer::previewNextChapter ) {
+                ImageViewer::window.draw( ImageViewer::previewText );
+            }
+            else {
+                ImageViewer::window.draw( ImageViewer::sprite );
+            }
             ImageViewer::window.display();
         }
 
@@ -84,10 +98,10 @@ int main()
     if ( ImageViewer::window.isOpen() ) {
         ImageViewer::window.close();
     }
-    if ( SUCCEEDED( hr ) ) {
-        CoUninitialize();
-    }
-    // Hotkey::wait();
+    // if ( SUCCEEDED( hr ) ) {
+    //     CoUninitialize();
+    // }
+    Hotkey::wait();
     std::cout << "Done\n";
 }
 

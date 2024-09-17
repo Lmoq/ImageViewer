@@ -7,6 +7,9 @@
 #include <string>
 #include <zip.h>
 
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+
 namespace fm
 {
     inline static std::unordered_set<std::string> image_extensions = {
