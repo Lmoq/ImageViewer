@@ -20,12 +20,17 @@ float ImageViewer::window_height = 0;
 float ImageViewer::sprite_width = 0;
 float ImageViewer::sprite_height = 0;
 
+using namespace fm;
 
 bool ImageViewer::open( const char *path )
 {
     // Populate image path list
-    if ( !fm::Chapter::open_archive( path ) ) {
+    if ( !Series::open_directory( path ) ) {
         std::cout << "Arhived failed to open\n";
+        return false;
+    }
+
+    if ( !Series::open_archive( 0 ) ) {
         return false;
     }
     // Finds a vertical image from archive to setup window shape

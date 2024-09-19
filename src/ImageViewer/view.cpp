@@ -33,7 +33,7 @@ void ImageViewer::zoomImage( sf::Event &event )
     // Zoom in
     if ( delta > 0 )
     {
-        float new_scale = max( 1.3f, current_view_scale - offset );
+        float new_scale = max( default_view_scale * 0.3, current_view_scale - offset );
         if ( current_view_scale != new_scale ) {
             view.move(
                 ( static_cast<float>( event.mouseWheelScroll.x ) - ( window_width / 2.0 ) ) / 8, 

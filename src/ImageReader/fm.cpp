@@ -80,11 +80,70 @@ HRESULT fm::open_folder_dialog( std::string &result )
     return hr;
 }
 
+// Get archive xml data
+bool fm::get_chapter_xml_doc( const char *path_, rapidxml::xml_document<> &xml )
+{
+    std::vector<char> buffer;
+
+    // Open archive
+    zip *arch = zip_open( path_, ZIP_RDONLY, NULL );
+    if ( !arch )
+    {
+        std::cout << "Failed to open arch\n";
+        return false;
+    }
+
+    // Get xml file stat to set buffer size
+    zip_stat_t stat = {};
+    if ( zip_stat( arch, "ComicInfo.xml", ZIP_RDONLY, &stat ) != 0 )
+    {
+        std::cout << "Stat failed\n";
+        zip_close( arch );
+        return false;
+    }
+
+    // Open xml file
+    zip_file *f = zip_fopen( arch, "ComicInfo.xml", ZIP_RDONLY );
+    if ( !f ) 
+    {
+        std::cout << "Fopen failed\n";
+        zip_close( arch );
+        return false;
+    }
+
+    // Extract xml data to buffer
+    // + 1 to include 0 terminator
+    buffer.resize( stat.size + 1 ); 
+    if ( zip_fread( f, buffer.data(), stat.size ) < 0 )
+    {
+        std::cout << "Fread failed\n";
+        zip_fclose( f );
+        zip_close( arch );
+        return false;
+    }
+    zip_fclose( f );
+    zip_close( arch );
+
+    // Data should be 0 terminated to be parsed in rapidxml
+    buffer[ buffer.size() - 1 ] = 0;
+    if ( buffer.size() == 0 || buffer[buffer.size() - 1] != 0 ) 
+    {
+        std::cout << "Failed to load xml data [ " << path_ << " ]\n" ;
+        return false;
+    }
+    
+    // Parse file contents to xml document
+    xml.parse<0>( buffer.data() );
+
+    return true;
+}
+
+
 // Clean Up
 void Series::close()
 {
-    if ( Chapter::archive != NULL ) {
-        zip_close( Chapter::archive );
+    if ( Series::opened_chapter->archive != NULL ) {
+        zip_close( Series::opened_chapter->archive );
     }
 }
 

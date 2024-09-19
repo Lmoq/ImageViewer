@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <string>
 #include <zip.h>
+#include <rapidxml.hpp>
 
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
@@ -23,37 +24,43 @@ namespace fm
         DIRECTORY
     } enum_series_type;
 
-    HRESULT open_folder_dialog( std::string &result );
+    typedef struct {
+        int pageIndex;
+        int maxIndex;
 
-    class Chapter
-    {
-        public:
-
-        static zip *archive;
-        static std::string path;
-
-        static std::vector<std::string> file_names;
-        static int num_index;
-
-        static bool open_archive( const char *path );
-        static bool get_index_buffer( int index, std::vector<char> &out_buffer );
-    };
+        zip *archive = NULL;
+        std::vector<const char *> fileNames;
+        
+        float number;
+        std::string title;
+        std::string path;
+        std::string translator;
+    } chapter_t;
 
     class Series
     {
         public:
-        
+        // Series
         static std::string path;
-        static enum_series_type chapter_type;
-
-        static std::unordered_map<float, std::string> chapter_map;
+        static enum_series_type series_type;
+        static std::vector<chapter_t> chapter_list;
 
         static enum_series_type check_series_type();
-        static bool open_series( const char *path );
-        static void sort_chapters();
 
+        static bool open_directory( const char *path );
+        static bool sort_chapters();
+
+        // Chapter
+        static chapter_t *opened_chapter;
+
+        static bool open_archive( int index );
+        static bool get_index_buffer( int index, std::vector<char> &out_buffer );
+
+        // Clean up
         static void close();
     };
+    HRESULT open_folder_dialog( std::string &result );
+    bool get_chapter_xml_doc( const char *archive_path, rapidxml::xml_document<> &xml );
 };
 
 #endif

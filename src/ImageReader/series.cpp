@@ -6,12 +6,14 @@
 namespace fs = std::filesystem;
 using namespace fm;
 
+// Series Directory
 std::string Series::path;
-enum_series_type Series::chapter_type;
-std::unordered_map<float, std::string> Series::chapter_map;
+enum_series_type Series::series_type;
 
+// List containing sets of chapter number paired with chapter path
+std::vector<chapter_t> Series::chapter_list;
 
-bool Series::open_series( const char *path_ )
+bool Series::open_directory( const char *path_ )
 {
     fs::path s_path( path_ );
     if ( !fs::exists( s_path ) ) {
@@ -20,10 +22,13 @@ bool Series::open_series( const char *path_ )
     }
 
     Series::path = path_;
-    chapter_type = check_series_type();
+    series_type = check_series_type();
 
     // Populate series chapter file paths
-    Series::sort_chapters();
+    if ( !Series::sort_chapters() ) {
+        std::cout << "Failed to sort chapters\n";
+        return false;
+    }
 
     // switch ( chapter_type )
     // {
@@ -57,69 +62,48 @@ enum_series_type Series::check_series_type()
     return ( file_count > dir_count ) ? ARCHIVED : DIRECTORY;
 }
 
-#include <rapidxml.hpp>
-#include <rapidxml_utils.hpp>
-
-void Series::sort_chapters()
+bool compareChpNum( chapter_t &chp1, chapter_t &chp2 )
 {
-    if ( chapter_type == ARCHIVED )
+    return chp1.number < chp2.number;
+}
+
+bool Series::sort_chapters()
+{
+    if ( series_type == ARCHIVED )
     {
         // Sort chapters through xml files
         for ( auto &p : fs::directory_iterator( fs::path( path ) ) )
         {
             if ( p.path().extension() == ".cbz" ) 
             {
-                zip *arch = zip_open( p.path().string().c_str(), ZIP_RDONLY, NULL );
-                if ( !arch ) {
-                    std::cout << "Failed to open arch\n";
-                    continue;
-                }
+                // Retrieve xml data
+                std::string chpPath = p.path().string();
 
-                std::vector<char> buffer;
-                buffer.clear();
-
-                zip_stat_t stat = {};
-                if ( zip_stat( arch, "ComicInfo.xml", ZIP_RDONLY, &stat ) != 0 )
-                {
-                    std::cout << "Stat failed\n";
-                    zip_close( arch );
-                    continue;
-                }
-
-                zip_file *f = zip_fopen( arch, "ComicInfo.xml", ZIP_RDONLY );
-                if ( !f ) {
-                    std::cout << "Fopen failed\n";
-                    zip_close( arch );
-                    continue;
-                }
-
-                buffer.resize( stat.size + 1 );
-                if ( zip_fread( f, buffer.data(), stat.size ) < 0 )
-                {
-                    std::cout << "Fread failed\n";
-                    zip_fclose( f );
-                    zip_close( arch );
-                }
-                // Data should be 0 terminated
-                buffer[ buffer.size() - 1 ] = 0;
-
+                // Contruct xml document from xml file contents
                 rapidxml::xml_document<> xml;
-                xml.parse<0>( buffer.data() );
+                if ( !fm::get_chapter_xml_doc( chpPath.c_str(), xml ) ) {
+                    return false;
+                }
+                rapidxml::xml_node<> *ComicInfo = xml.first_node( "ComicInfo" );
 
-                rapidxml::xml_node<> *ComicInfo = xml.first_node( "ComicInfo" ); 
-
-                char *title = ComicInfo->first_node( "Title" )->value();
-                char *chapter_number = ComicInfo->first_node( "Number" )->value();
-                char *translator = ComicInfo->first_node( "Translator" )->value();
-
-                std::cout << "Title : " << title << '\n';
-                std::cout << "Chapter Number : " << chapter_number << '\n';
-                std::cout << "Translator : " << translator << "\n\n";
-
-                zip_fclose( f );
-                zip_close( arch );
+                // Store chapter title, number, translator to list
+                chapter_t ch;
+                
+                ch.path = chpPath;
+                ch.number = atof( ComicInfo->first_node( "Number" )->value() );
+                ch.title = ComicInfo->first_node( "Title" )->value();
+                ch.translator = ComicInfo->first_node( "Translator" )->value();
+        
+                chapter_list.push_back( ch );
             }
         }
+        std::sort( chapter_list.begin(), chapter_list.end(), compareChpNum );
+        for ( auto &chapter : chapter_list )
+        {
+            std::cout << "number : " << chapter.number 
+                      << " path : " << chapter.path
+                      << " translator : " << chapter.translator <<  '\n';
+        }
     }
+    return true;
 }
-

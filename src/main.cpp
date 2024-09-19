@@ -6,6 +6,8 @@
 #include <hotkey.h>
 #include <lzip.h>
 
+using namespace fm;
+
 static bool WindowRunning = false;
 static sf::Clock winClock;
 
@@ -17,21 +19,18 @@ static float lastframetime = winClock.getElapsedTime().asSeconds();
 
 int main()
 {
-    // HRESULT hr = CoInitializeEx( NULL, COINIT_MULTITHREADED );
-    // if ( SUCCEEDED( hr ) ) 
-    // {
-    //     std::string folderPath = "Empty";
-    //     if ( SUCCEEDED( fm::open_folder_dialog( folderPath ) ) ) 
-    //     {
-    //         fm::Series::open_series( folderPath.c_str() );
-    //     }
-    // }
+    HRESULT hr = CoInitializeEx( NULL, COINIT_MULTITHREADED );
+    if ( SUCCEEDED( hr ) ) 
+    {
+        std::string folderPath = "Empty";
+        if ( SUCCEEDED( fm::open_folder_dialog( folderPath ) ) ) 
+        {
+            WindowRunning = ImageViewer::open( folderPath.c_str() );
 
-    WindowRunning = ImageViewer::open( MIHON );
-    INIT_HOTKEY();
-    Hotkey::run();
-
-    std::cout << "ready\n";
+            INIT_HOTKEY();
+            Hotkey::run();
+        }
+    }
 
     sf::Event event;
     while ( WindowRunning )
@@ -98,11 +97,10 @@ int main()
     if ( ImageViewer::window.isOpen() ) {
         ImageViewer::window.close();
     }
-    // if ( SUCCEEDED( hr ) ) {
-    //     CoUninitialize();
-    // }
+    if ( SUCCEEDED( hr ) ) {
+        CoUninitialize();
+    }
     Hotkey::wait();
-    std::cout << "Done\n";
 }
 
 void INIT_HOTKEY()
@@ -127,7 +125,7 @@ void INIT_HOTKEY()
 void Hotkey::terminate()
 {
     WindowRunning = FALSE;
-    fm::Series::close();
+    Series::close();
     PostThreadMessage( threadID, WM_EXIT, 0, 0 );
 }
 

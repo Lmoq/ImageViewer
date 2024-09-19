@@ -2,9 +2,10 @@
 #include <image.h>
 #include <lzip.h>
 
+using namespace fm;
+
 // Media
-int pageOffset = 1;
-int ImageViewer::pageNumber = 0;
+int ImageViewer::pageIndex = -1;
 bool ImageViewer::previewNextChapter = true;
 
 sf::Text ImageViewer::previewText;
@@ -41,7 +42,7 @@ bool ImageViewer::loadImageFromIndex( int index )
 {
     std::vector<char> img_buffer;
     // Retrive buffer of the selected index from the current opened archive 
-    if ( !fm::Chapter::get_index_buffer( index, img_buffer ) )
+    if ( !Series::get_index_buffer( index, img_buffer ) )
     {
         std::cout << "Failed to get buffer\n";
         return false;
@@ -72,48 +73,45 @@ void ImageViewer::showWindow()
 
 void ImageViewer::nextPage()
 {
+    int new_index = pageIndex + 1;
     // Display info for next chapter if page number exceeded chapter pages
-    if ( pageNumber + 1 > fm::Chapter::num_index - pageOffset ) 
+    if ( new_index > Series::opened_chapter->maxIndex )
     {
         // Retrive info for next chapter and display preview
         previewNextChapter = true;
-        pageNumber = fm::Chapter::num_index;
+        pageIndex = Series::opened_chapter->maxIndex + 1;
 
         view.setSize( window.getDefaultView().getSize() );
         view.setCenter( window_width / 2.0, window_height / 2.0 );
         window.setView( view );
-        
-        drawChapterPreview();
+
         return;
     }
     else {
         previewNextChapter = false;
     }
-
+    
     // Display next page
-    int new_index = min( static_cast<int>( fm::Chapter::num_index - pageOffset ), pageNumber + 1 );
-    if ( pageNumber != new_index )
-    {
-        pageNumber = new_index;
-        if ( !loadImageFromIndex( pageNumber - pageOffset ) ) {
-            return;
-        }
-        default_view_scale = getImageFitScale( texture );
-        current_view_scale = default_view_scale;
-
-        setViewZoom( default_view_scale, true );
-        keepImage();
+    pageIndex = new_index;
+    if ( !loadImageFromIndex( pageIndex ) ) {
+        return;
     }
+    default_view_scale = getImageFitScale( texture );
+    current_view_scale = default_view_scale;
+
+    setViewZoom( default_view_scale, true );
+    keepImage();
 }
 
 void ImageViewer::prevPage()
 {
+    int new_index = pageIndex - 1;
     // Display info for previous chapter if page number subceeded minimum page no.
-    if ( pageNumber - 1 <= 0 ) 
+    if ( new_index < 0 ) 
     {
         // Should be last chapter
         previewNextChapter = true;
-        pageNumber = 0;
+        pageIndex = -1;
 
         view.setSize( window.getDefaultView().getSize() );
         view.setCenter( window_width / 2.0, window_height / 2.0 );
@@ -125,21 +123,17 @@ void ImageViewer::prevPage()
     else {
         previewNextChapter = false;
     }
-
+  
     // Display previous page
-    int new_index = max( 0 + pageOffset, pageNumber - 1 );
-    if ( pageNumber != new_index )
-    {
-        pageNumber = new_index;
-        if ( !loadImageFromIndex( pageNumber - pageOffset ) ) {
-            return;
-        }
-        default_view_scale = getImageFitScale( texture );
-        current_view_scale = default_view_scale;
-
-        setViewZoom( default_view_scale, true );
-        keepImage();
+    pageIndex = new_index;
+    if ( !loadImageFromIndex( pageIndex ) ) {
+        return;
     }
+    default_view_scale = getImageFitScale( texture );
+    current_view_scale = default_view_scale;
+
+    setViewZoom( default_view_scale, true );
+    keepImage();
 }
 
 void ImageViewer::drawChapterPreview()

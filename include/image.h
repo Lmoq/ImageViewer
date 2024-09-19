@@ -17,7 +17,7 @@ class ImageViewer
 {
 public:
     // Media info
-    static int pageNumber;
+    static int pageIndex;
     static bool previewNextChapter;
  
     // Window
