@@ -41,6 +41,8 @@ public:
     static float sprite_width;
     static float sprite_height;
 
+    static sf::Mutex mutex;
+
     // View
     static float default_view_scale;
     static float current_view_scale;

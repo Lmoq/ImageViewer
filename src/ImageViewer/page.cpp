@@ -57,17 +57,23 @@ bool ImageViewer::loadImageFromIndex( int index )
 
 void ImageViewer::hideWindow()
 {
-    ShowWindow( windowHandle, SW_HIDE );
-    windowDisplayed = FALSE;
+    if ( windowDisplayed )
+    {
+        ShowWindow( windowHandle, SW_HIDE );
+        windowDisplayed = FALSE;
+    }
 }
 
 void ImageViewer::showWindow()
 {
-    ShowWindow( windowHandle, SW_SHOW );
-    windowDisplayed = TRUE;
+    if ( !windowDisplayed )
+    {
+        ShowWindow( windowHandle, SW_SHOW );
+        windowDisplayed = TRUE;
 
-    if ( previewNextChapter ) {
-        drawChapterPreview();
+        if ( previewNextChapter ) {
+            drawChapterPreview();
+        }
     }
 }
 
@@ -138,9 +144,11 @@ void ImageViewer::prevPage()
 
 void ImageViewer::drawChapterPreview()
 {
+    mutex.lock();
     // Parse Next Chapter ComicInfo.xml
     previewText.setString( "Title : \nChapter : \nTranslator : " );
     previewText.setCharacterSize( 30 );
     
     previewText.setPosition( (window_width - previewText.getLocalBounds().width) / 2, 10 );
+    mutex.unlock();
 }

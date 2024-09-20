@@ -17,6 +17,8 @@ static float FrameTime = 1.0 / static_cast<float>(FPS);
 static float timeleft;
 static float lastframetime = winClock.getElapsedTime().asSeconds();
 
+sf::Mutex ImageViewer::mutex;
+
 int main()
 {
     HRESULT hr = CoInitializeEx( NULL, COINIT_MULTITHREADED );
@@ -27,14 +29,17 @@ int main()
         {
             WindowRunning = ImageViewer::open( folderPath.c_str() );
 
-            INIT_HOTKEY();
-            Hotkey::run();
+            if ( WindowRunning ) {
+                INIT_HOTKEY();
+                Hotkey::run();
+            }
         }
     }
 
     sf::Event event;
     while ( WindowRunning )
     {
+        ImageViewer::mutex.lock();
         while ( ImageViewer::window.pollEvent( event ) )
         {
             switch ( event.type )
@@ -93,6 +98,7 @@ int main()
             sf::sleep( sf::seconds( timeleft ) );
         }
         lastframetime = winClock.getElapsedTime().asSeconds();
+        ImageViewer::mutex.unlock();
     }
     if ( ImageViewer::window.isOpen() ) {
         ImageViewer::window.close();
@@ -101,6 +107,7 @@ int main()
         CoUninitialize();
     }
     Hotkey::wait();
+    std::cout << "Done\n";
 }
 
 void INIT_HOTKEY()

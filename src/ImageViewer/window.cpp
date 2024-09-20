@@ -42,15 +42,15 @@ bool ImageViewer::open( const char *path )
     
     std::cout << "Window Width[ " << window_width << " ]\n";
 
-    defaultFont.loadFromFile( "C:/Windows/Fonts/Arial.ttf" );
-    previewText.setFont( defaultFont );
-    
-    view = window.getDefaultView();
-
     // Set window state
     anchorWindow( 1 );
     SetWindowPos( windowHandle, HWND_TOPMOST, 0,0,0,0, SWP_NOMOVE | SWP_NOSIZE );
     hideWindow();
+
+    defaultFont.loadFromFile( "C:/Windows/Fonts/Arial.ttf" );
+    previewText.setFont( defaultFont );
+    
+    view = window.getDefaultView();
 
     return true;
 }

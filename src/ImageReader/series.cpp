@@ -82,6 +82,7 @@ bool Series::sort_chapters()
                 // Contruct xml document from xml file contents
                 rapidxml::xml_document<> xml;
                 if ( !fm::get_chapter_xml_doc( chpPath.c_str(), xml ) ) {
+                    std::cout << "Failed to retrive xml : " << chpPath << '\n'; 
                     return false;
                 }
                 rapidxml::xml_node<> *ComicInfo = xml.first_node( "ComicInfo" );
@@ -91,7 +92,7 @@ bool Series::sort_chapters()
                 
                 ch.path = chpPath;
                 ch.number = atof( ComicInfo->first_node( "Number" )->value() );
-                ch.title = ComicInfo->first_node( "Title" )->value();
+                // ch.title = ComicInfo->first_node( "Title" )->value();
                 ch.translator = ComicInfo->first_node( "Translator" )->value();
         
                 chapter_list.push_back( ch );

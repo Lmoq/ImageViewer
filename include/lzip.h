@@ -16,7 +16,8 @@ namespace fm
     inline static std::unordered_set<std::string> image_extensions = {
         ".jpg",
         ".png",
-        ".jpeg"
+        ".jpeg",
+        ".webp"
     };
 
     typedef enum {
