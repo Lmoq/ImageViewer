@@ -84,12 +84,17 @@ HRESULT fm::open_folder_dialog( std::string &result )
 bool fm::get_chapter_xml_doc( const char *path_, rapidxml::xml_document<> &xml )
 {
     std::vector<char> buffer;
+    int error = 0;
 
     // Open archive
-    zip *arch = zip_open( path_, ZIP_RDONLY, NULL );
+    zip *arch = zip_open( path_, ZIP_RDONLY, &error );
     if ( !arch )
     {
-        std::cout << "Failed to open arch\n";
+        zip_error_t zip_error;
+        zip_error_init_with_code( &zip_error, error );
+
+        std::cout << "Archive failed to read : " << zip_error_strerror( &zip_error ) << '\n';
+        zip_error_fini( &zip_error );
         return false;
     }
 

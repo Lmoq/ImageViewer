@@ -25,7 +25,7 @@ namespace fm
         DIRECTORY
     } enum_series_type;
 
-    typedef struct {
+    struct chapter_t{
         int pageIndex;
         int maxIndex;
 
@@ -36,7 +36,7 @@ namespace fm
         std::string title;
         std::string path;
         std::string translator;
-    } chapter_t;
+    };
 
     class Series
     {

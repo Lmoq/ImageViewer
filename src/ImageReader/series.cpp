@@ -62,6 +62,9 @@ enum_series_type Series::check_series_type()
     return ( file_count > dir_count ) ? ARCHIVED : DIRECTORY;
 }
 
+#include <codecvt>
+#include <locale>
+
 bool compareChpNum( chapter_t &chp1, chapter_t &chp2 )
 {
     return chp1.number < chp2.number;
@@ -74,15 +77,19 @@ bool Series::sort_chapters()
         // Sort chapters through xml files
         for ( auto &p : fs::directory_iterator( fs::path( path ) ) )
         {
-            if ( p.path().extension() == ".cbz" ) 
+            if ( p.path().extension() == ".cbz" )
             {
                 // Retrieve xml data
-                std::string chpPath = p.path().string();
+                std::wstring chpwPath = p.path().wstring();
 
+                std::wstring_convert< std::codecvt_utf8<wchar_t>> conv;
+                std::string chpPath = conv.to_bytes( chpwPath );
+
+                // WideCharToMultiByte( CP_ACP, 0, xmlfile.data(), -1, multiByte.data(), xmlfile.size(), NULL, NULL );
                 // Contruct xml document from xml file contents
                 rapidxml::xml_document<> xml;
                 if ( !fm::get_chapter_xml_doc( chpPath.c_str(), xml ) ) {
-                    std::cout << "Failed to retrive xml : " << chpPath << '\n'; 
+                    std::cout << "Failed to retrive xml data : " << chpPath << '\n'; 
                     return false;
                 }
                 rapidxml::xml_node<> *ComicInfo = xml.first_node( "ComicInfo" );
