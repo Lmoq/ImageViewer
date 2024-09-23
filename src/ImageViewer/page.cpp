@@ -144,6 +144,7 @@ void ImageViewer::prevPage()
 
 void ImageViewer::drawChapterPreview()
 {
+    /// Sync resource access to opengl context
     mutex.lock();
     // Parse Next Chapter ComicInfo.xml
     previewText.setString( "Title : \nChapter : \nTranslator : " );
