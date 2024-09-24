@@ -16,11 +16,11 @@ bool Series::open_archive( int index )
     chapter_t *chp;
     try 
     {
-        chp = &chapter_list.at( index );
+        chp = &chapter_list->at( index );
     }
     catch ( std::out_of_range &ex ) 
     {
-        std::cout << "Exception occured : " << ex.what() << '\n';
+        std::cout << "Index out of bounds : " << index << '\n';
         return false;
     }
     // opened_chapter_archive

@@ -1,8 +1,6 @@
 #ifndef _IMAGE_
 #define _IMAGE_
 
-#define MIHON "F:/Backup/.Oppo/Download/.mpak/Mihon/downloads/Comick (EN)/Grand Blue Dreaming/Official_Chapter 4.cbz"
-// #define MIHON "F:/Backup/.Oppo/Download/.mpak/Mihon/downloads/Comick (EN)/chapter.cbz"
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
@@ -61,7 +59,7 @@ public:
     static bool setImagefromBuffer( std::vector<char> &buffer );
     static bool loadImageFromIndex( int index );
 
-    static void drawChapterPreview();
+    static bool setChapterPreview( int index, const char *failText );
     static void nextPage();
     static void prevPage();
 

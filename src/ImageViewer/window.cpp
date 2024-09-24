@@ -24,15 +24,16 @@ using namespace fm;
 
 bool ImageViewer::open( const char *path )
 {
+    // Load font
+    defaultFont.loadFromFile( "C:/Windows/Fonts/Arial.ttf" );
+    previewText.setFont( defaultFont );
+
     // Populate image path list
     if ( !Series::open_directory( path ) ) {
         std::cout << "Arhived failed to open\n";
         return false;
     }
-
-    if ( !Series::open_archive( 0 ) ) {
-        return false;
-    }
+    
     // Finds a vertical image from archive to setup window shape
     setupWindowShape();
 
@@ -44,13 +45,11 @@ bool ImageViewer::open( const char *path )
 
     // Set window state
     anchorWindow( 1 );
-    SetWindowPos( windowHandle, HWND_TOPMOST, 0,0,0,0, SWP_NOMOVE | SWP_NOSIZE );
     hideWindow();
+    SetWindowPos( windowHandle, HWND_TOPMOST, 0,0,0,0, SWP_NOMOVE | SWP_NOSIZE );
 
-    defaultFont.loadFromFile( "C:/Windows/Fonts/Arial.ttf" );
-    previewText.setFont( defaultFont );
-    
     view = window.getDefaultView();
+    setChapterPreview( 0, "Failed to load preview");
 
     return true;
 }

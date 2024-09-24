@@ -70,10 +70,6 @@ void ImageViewer::showWindow()
     {
         ShowWindow( windowHandle, SW_SHOW );
         windowDisplayed = TRUE;
-
-        if ( previewNextChapter ) {
-            drawChapterPreview();
-        }
     }
 }
 
@@ -87,9 +83,14 @@ void ImageViewer::nextPage()
         previewNextChapter = true;
         pageIndex = Series::opened_chapter->maxIndex + 1;
 
+        // Reset view
         view.setSize( window.getDefaultView().getSize() );
         view.setCenter( window_width / 2.0, window_height / 2.0 );
         window.setView( view );
+
+        if ( setChapterPreview( Series::chapterIndex + 1, "No Next Chapter" ) ) {
+            Series::chapterIndex ++;
+        }
 
         return;
     }
@@ -119,11 +120,14 @@ void ImageViewer::prevPage()
         previewNextChapter = true;
         pageIndex = -1;
 
+        // Reset View
         view.setSize( window.getDefaultView().getSize() );
         view.setCenter( window_width / 2.0, window_height / 2.0 );
         window.setView( view );
 
-        // drawChapterPreview();
+        if ( setChapterPreview( Series::chapterIndex - 1, "No Previous Chapter" ) ) {
+            Series::chapterIndex --;
+        }
         return;
     }
     else {
@@ -142,14 +146,39 @@ void ImageViewer::prevPage()
     keepImage();
 }
 
-void ImageViewer::drawChapterPreview()
+/// <param name="index">- index of the chapter from chapter_list to load preview from</param>
+bool ImageViewer::setChapterPreview( int index, const char *failText )
 {
     /// Sync resource access to opengl context
     mutex.lock();
-    // Parse Next Chapter ComicInfo.xml
-    previewText.setString( "Title : \nChapter : \nTranslator : " );
+    
+    bool succeed = true;
+    chapter_t *ch = NULL;
+
+    try {
+        ch = &Series::chapter_list->at( index );
+    }
+    catch ( std::out_of_range ) 
+    {
+        std::cout << "Index out of bound\n";
+        succeed = false;
+    }
+
+    char buffer[ MAX_PATH ];
+    if ( succeed ) {
+        sprintf( buffer, 
+                 "Title : %s\nChapter : %.1f\nTranslator : %s", 
+                 ch->title.c_str(), ch->number, ch->translator.c_str() );
+        std::cout << "Chapter details : \n" << buffer << '\n';
+    }
+    else {
+        sprintf( buffer, "%s", failText );
+    }
+    previewText.setString( buffer );
     previewText.setCharacterSize( 30 );
     
     previewText.setPosition( (window_width - previewText.getLocalBounds().width) / 2, 10 );
     mutex.unlock();
+
+    return succeed;
 }

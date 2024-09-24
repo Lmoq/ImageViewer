@@ -186,7 +186,10 @@ class Hotkey
             ShowWindow( hWnd, SW_HIDE );
             msgLoop();
         }
-        UnhookWindowsHookEx( hook );
+
+        if (hook) {
+            UnhookWindowsHookEx( hook );
+        }
     }
 
     inline static void msgLoop()

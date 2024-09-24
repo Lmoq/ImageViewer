@@ -150,6 +150,7 @@ void Series::close()
     if ( Series::opened_chapter->archive != NULL ) {
         zip_close( Series::opened_chapter->archive );
     }
+    delete Series::chapter_list;
 }
 
 

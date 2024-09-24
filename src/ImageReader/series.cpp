@@ -9,9 +9,10 @@ using namespace fm;
 // Series Directory
 std::string Series::path;
 enum_series_type Series::series_type;
+int Series::chapterIndex;
 
 // List containing sets of chapter number paired with chapter path
-std::vector<chapter_t> Series::chapter_list;
+std::vector<chapter_t> *Series::chapter_list = new std::vector<chapter_t> ;
 
 bool Series::open_directory( const char *path_ )
 {
@@ -30,12 +31,14 @@ bool Series::open_directory( const char *path_ )
         return false;
     }
 
-    // switch ( chapter_type )
-    // {
-    //     case ARCHIVED:
-    //         Chapter::open_archive( chapter_map[ 0 ].c_str() );
-    //         break;
-    // }
+    chapterIndex = 0;
+    switch ( series_type )
+    {
+        case ARCHIVED:
+            if ( !Series::open_archive( chapterIndex ) )
+                return false;
+            break;
+    }
     return true;
 }
 
@@ -77,18 +80,20 @@ bool Series::sort_chapters()
         // Sort chapters through xml files
         for ( auto &p : fs::directory_iterator( fs::path( path ) ) )
         {
+            // Retrieve xml data
             if ( p.path().extension() == ".cbz" )
             {
-                // Retrieve xml data
+                // Use wide string to support unicode characters in path
                 std::wstring chpwPath = p.path().wstring();
 
+                // Convert wide string to string
                 std::wstring_convert< std::codecvt_utf8<wchar_t>> conv;
                 std::string chpPath = conv.to_bytes( chpwPath );
 
-                // WideCharToMultiByte( CP_ACP, 0, xmlfile.data(), -1, multiByte.data(), xmlfile.size(), NULL, NULL );
                 // Contruct xml document from xml file contents
                 rapidxml::xml_document<> xml;
-                if ( !fm::get_chapter_xml_doc( chpPath.c_str(), xml ) ) {
+                if ( !fm::get_chapter_xml_doc( chpPath.c_str(), xml ) ) 
+                {
                     std::cout << "Failed to retrive xml data : " << chpPath << '\n'; 
                     return false;
                 }
@@ -99,14 +104,15 @@ bool Series::sort_chapters()
                 
                 ch.path = chpPath;
                 ch.number = atof( ComicInfo->first_node( "Number" )->value() );
-                // ch.title = ComicInfo->first_node( "Title" )->value();
+                ch.title = ComicInfo->first_node( "Title" )->value();
                 ch.translator = ComicInfo->first_node( "Translator" )->value();
         
-                chapter_list.push_back( ch );
+                chapter_list->push_back( ch );
             }
         }
-        std::sort( chapter_list.begin(), chapter_list.end(), compareChpNum );
-        for ( auto &chapter : chapter_list )
+        // Sort chapter_t list based on chapter number
+        std::sort( chapter_list->begin(), chapter_list->end(), compareChpNum );
+        for ( auto &chapter : *chapter_list )
         {
             std::cout << "number : " << chapter.number 
                       << " path : " << chapter.path

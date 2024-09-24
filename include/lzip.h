@@ -5,7 +5,7 @@
 #include <unordered_set>
 #include <unordered_map>
 #include <string>
-#include <zip.h>
+#include <zip.h> 
 #include <rapidxml.hpp>
 
 #define WIN32_LEAN_AND_MEAN
@@ -26,13 +26,13 @@ namespace fm
     } enum_series_type;
 
     struct chapter_t{
-        int pageIndex;
-        int maxIndex;
+        int pageIndex = 0;
+        int maxIndex = 0;
 
         zip *archive = NULL;
         std::vector<const char *> fileNames;
         
-        float number;
+        float number = 0;
         std::string title;
         std::string path;
         std::string translator;
@@ -44,7 +44,9 @@ namespace fm
         // Series
         static std::string path;
         static enum_series_type series_type;
-        static std::vector<chapter_t> chapter_list;
+
+        static int chapterIndex;
+        static std::vector<chapter_t> *chapter_list;
 
         static enum_series_type check_series_type();
 
